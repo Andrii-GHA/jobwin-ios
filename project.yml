@@ -1,0 +1,32 @@
+name: JobWin
+options:
+  deploymentTarget:
+    iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+targets:
+  JobWin:
+    type: application
+    platform: iOS
+    sources:
+      - JobWin
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.jobwin.mobile
+        PRODUCT_NAME: JobWin
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: JobWin
+        INFOPLIST_KEY_CFBundleShortVersionString: "0.1.0"
+        INFOPLIST_KEY_CFBundleVersion: "1"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.business
+        INFOPLIST_KEY_CFBundleURLTypes:
+          - CFBundleURLName: io.jobwin.mobile
+            CFBundleURLSchemes:
+              - jobwin
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDarkContent
+        GENERATE_INFOPLIST_FILE: true
+        CODE_SIGN_STYLE: Automatic
