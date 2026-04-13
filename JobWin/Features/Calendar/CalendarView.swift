@@ -176,6 +176,8 @@ struct CalendarView: View {
     }
 
     private func agendaView(model: CalendarModel, payload: MobileCalendarDTO) -> some View {
+        let canRingOut = sessionStore.identity?.fullAccess == true
+
         List {
             if let actionSuccessMessage = model.actionSuccessMessage {
                 Section {
@@ -241,7 +243,7 @@ struct CalendarView: View {
                             .tint(.green)
                         }
 
-                        if order.clientId != nil {
+                        if canRingOut, order.clientId != nil {
                             Button(model.activeCallOrderId == order.id ? "..." : "Call") {
                                 Task { await model.startRingOut(for: order) }
                             }

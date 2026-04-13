@@ -199,6 +199,8 @@ struct OrderDetailView: View {
 
     @ViewBuilder
     private func content(model: OrderDetailModel) -> some View {
+        let canRingOut = sessionStore.identity?.fullAccess == true
+
         if model.isLoading, model.payload == nil {
             LoadingStateView(title: "Loading order...")
         } else if let errorMessage = model.errorMessage, model.payload == nil {
@@ -223,12 +225,14 @@ struct OrderDetailView: View {
                         }
 
                         if let client = payload.client {
-                            Button(model.isCalling ? "Calling..." : "Call client") {
-                                Task { await model.startRingOut(clientId: client.id) }
+                            if canRingOut {
+                                Button(model.isCalling ? "Calling..." : "Call client") {
+                                    Task { await model.startRingOut(clientId: client.id) }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(JobWinPalette.primary)
+                                .disabled(model.isCalling)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(JobWinPalette.primary)
-                            .disabled(model.isCalling)
 
                             if let phone = JobWinFormatting.normalizedText(client.primaryPhone) {
                                 Button("Text client") {

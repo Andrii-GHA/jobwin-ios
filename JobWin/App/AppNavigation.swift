@@ -213,6 +213,15 @@ enum AppRoute: Equatable {
             return nil
         }
     }
+
+    func isAccessible(fullAccess: Bool) -> Bool {
+        switch self {
+        case .clients, .client, .inbox, .thread:
+            return fullAccess
+        default:
+            return true
+        }
+    }
 }
 
 struct ExternalWebDestination: Identifiable, Equatable {

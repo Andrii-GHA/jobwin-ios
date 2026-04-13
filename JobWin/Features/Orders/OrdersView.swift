@@ -84,6 +84,8 @@ struct OrdersView: View {
 
     @ViewBuilder
     private func content(model: OrdersModel) -> some View {
+        let canRingOut = sessionStore.identity?.fullAccess == true
+
         if model.isLoading, model.payload == nil {
             LoadingStateView(title: "Loading orders...")
         } else if let errorMessage = model.errorMessage, model.payload == nil {
@@ -159,7 +161,7 @@ struct OrdersView: View {
                                 .tint(.green)
                             }
 
-                            if item.clientId != nil {
+                            if canRingOut, item.clientId != nil {
                                 Button(model.activeCallOrderId == item.id ? "..." : "Call") {
                                     Task { await model.startRingOut(for: item) }
                                 }

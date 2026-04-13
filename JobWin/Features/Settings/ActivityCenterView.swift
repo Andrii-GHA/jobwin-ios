@@ -89,9 +89,10 @@ struct ActivityCenterView: View {
 
     @ViewBuilder
     private func activityRow(_ item: ActivityItemDTO) -> some View {
+        let fullAccess = sessionStore.identity?.fullAccess == true
         let destination = AppRoute(href: item.href ?? "")
 
-        if let destination {
+        if let destination, destination.isAccessible(fullAccess: fullAccess) {
             VStack(alignment: .leading, spacing: 10) {
                 Button {
                     open(destination)
@@ -107,7 +108,8 @@ struct ActivityCenterView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(JobWinPalette.primary)
 
-                    if let secondaryRoute = secondaryActionRoute(for: destination) {
+                    if let secondaryRoute = secondaryActionRoute(for: destination),
+                       secondaryRoute.isAccessible(fullAccess: fullAccess) {
                         Button(secondaryActionTitle(for: secondaryRoute)) {
                             open(secondaryRoute)
                         }
