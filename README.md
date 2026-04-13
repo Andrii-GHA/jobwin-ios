@@ -15,6 +15,8 @@ This folder is the starting point for the native iOS client that sits on top of 
 - `GET /api/mobile/v1/orders/:orderId`
 - `GET /api/mobile/v1/inbox/threads`
 - `GET /api/mobile/v1/inbox/threads/:threadId`
+- `POST /api/mobile/v1/location`
+- `GET /api/mobile/v1/location/technicians`
 - `GET /api/mobile/v1/clients`
 - `GET /api/mobile/v1/clients/:clientId`
 - `GET /api/mobile/v1/tasks`
@@ -165,15 +167,30 @@ Current scaffold progress:
 - mobile client summaries now also include lightweight thread/order navigation context:
   - `threadId`
   - `latestOrderId`
+- Calendar now also includes a native `Agenda / Live Map` segmented switch:
+  - `Agenda` preserves the existing orders/tasks operator flow
+  - `Live Map` renders technician pins from `/api/mobile/v1/location/technicians`
+  - technicians can start/stop foreground location sharing directly from the app
+  - the map auto-refreshes every 20 seconds and recenters around visible technician/device coordinates
+- iOS foreground location sharing now exists:
+  - `CLLocationManager` with `When In Use` authorization
+  - `POST /api/mobile/v1/location` to upsert technician coordinates into the shared backend location table
+  - `DELETE /api/mobile/v1/location` on explicit stop
+  - updates are throttled to meaningful movement / time intervals so the app is not spamming the backend
 
 ## Notes
 
 - This scaffold is source-first. It does not include a checked-in `.xcodeproj`.
 - `project.yml` is included so the project can be generated on macOS with XcodeGen.
 - `project.yml` now also registers the `jobwin` custom URL scheme for deep-link testing.
+- `project.yml` now also includes `NSLocationWhenInUseUsageDescription` for native live map sharing.
 - Push Notifications capability / signing entitlement still needs to be finalized during the first macOS/Xcode build pass.
 - Auth transport is bearer-token based and targets the JobWin mobile BFF.
 - This environment does not include Xcode or a Swift toolchain, so source edits here are not compiler-verified.
+- Live location sharing is currently foreground-first:
+  - the app shares while open and authorized
+  - when the app moves to background, sharing pauses instead of pretending that background GPS exists
+  - a real field test should be done on a physical iPhone, not just Simulator
 
 ## Local setup on macOS
 

@@ -43,6 +43,7 @@ open JobWin.xcodeproj
    - tab navigation works
    - push permission prompt path works
    - custom URL scheme `jobwin://...` resolves
+   - Calendar `Agenda / Live Map` switch renders both modes
 
 ## Runtime prerequisites
 
@@ -66,10 +67,12 @@ These files are the highest-value first compile targets because they carry the n
 - `JobWin/Core/Networking/APIClient.swift`
 - `JobWin/Features/Home/HomeView.swift`
 - `JobWin/Features/Calendar/CalendarView.swift`
+- `JobWin/Features/Map/LiveMapView.swift`
 - `JobWin/Features/Orders/OrdersView.swift`
 - `JobWin/Features/Orders/OrderDetailView.swift`
 - `JobWin/Features/Clients/ClientsView.swift`
 - `JobWin/Features/Settings/ActivityCenterView.swift`
+- `JobWin/Services/Location/LocationService.swift`
 - `JobWin/Services/Push/PushService.swift`
 
 ## Capabilities to finish in Xcode
@@ -80,6 +83,8 @@ These still require real Xcode setup:
 - signing profile validation
 - simulator/device run verification
 - APNs behavior verification
+- foreground location permission prompt verification
+- physical-device live location verification
 
 ## Suggested first verification sequence
 
@@ -94,11 +99,20 @@ These still require real Xcode setup:
    - Inbox thread detail
    - Activity center
    - deep links
+   - Calendar `Agenda`
+   - Calendar `Live Map`
 6. Then verify mutations:
    - task complete
    - order arrived/start/complete
    - reschedule
    - ring-out request dispatch
+7. On a physical iPhone, verify live location:
+   - allow `When In Use` location permission
+   - open Calendar -> `Live Map`
+   - tap `Share my location`
+   - confirm your pin appears and refreshes
+   - move the device and confirm position updates after distance/time threshold
+   - background the app and confirm the UI reflects paused sharing instead of pretending to track in background
 
 ## Backend state at handoff
 

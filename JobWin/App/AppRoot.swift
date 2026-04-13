@@ -33,12 +33,16 @@ struct AppRoot: View {
         }
         .task(id: sessionStore.isAuthenticated) {
             let pushService = sessionStore.environment.pushService
+            let locationService = sessionStore.environment.locationService
             if sessionStore.isAuthenticated {
                 await pushService.configure(using: sessionStore)
+                locationService.configure(using: sessionStore)
+                locationService.handleScenePhase(scenePhase)
                 await refreshOperatorShell()
             } else {
                 sessionStore.environment.shellMetricsStore.clear()
                 sessionStore.environment.activityStore.clear()
+                locationService.clearSession()
             }
         }
         .task(id: sessionStore.environment.pushService.deviceToken) {
@@ -60,6 +64,8 @@ struct AppRoot: View {
             Task { await refreshOperatorShell() }
         }
         .onChange(of: scenePhase) { _, phase in
+            sessionStore.environment.locationService.handleScenePhase(phase)
+
             guard phase == .active, sessionStore.isAuthenticated else { return }
             Task { await refreshOperatorShell() }
         }

@@ -197,6 +197,52 @@ struct MobileCalendarDTO: Codable {
     let tasksAvailable: Bool
 }
 
+enum MobileLocationFreshness: String, Codable {
+    case live
+    case recent
+    case stale
+}
+
+struct MobileLocationUpdateRequestBody: Encodable {
+    let latitude: Double
+    let longitude: Double
+    let accuracyMeters: Double?
+    let headingDegrees: Double?
+    let speedMps: Double?
+    let capturedAt: String?
+}
+
+struct MobileLocationUpdateResponseDTO: Codable {
+    let ok: Bool
+    let capturedAt: String
+    let sharingEnabled: Bool
+}
+
+struct MobileLocationStopResponseDTO: Codable {
+    let ok: Bool
+    let sharingEnabled: Bool
+}
+
+struct MobileTechnicianLocationDTO: Codable, Identifiable, Hashable {
+    var id: String { userId }
+
+    let userId: String
+    let label: String
+    let color: String
+    let latitude: Double
+    let longitude: Double
+    let accuracyMeters: Double?
+    let headingDegrees: Double?
+    let speedMps: Double?
+    let capturedAt: String
+    let freshness: MobileLocationFreshness
+    let isCurrentUser: Bool
+}
+
+struct MobileTechnicianLocationsDTO: Codable {
+    let items: [MobileTechnicianLocationDTO]
+}
+
 struct TaskMutationTaskDTO: Codable {
     let id: String
     let leadId: String?

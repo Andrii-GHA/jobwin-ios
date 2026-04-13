@@ -25,6 +25,7 @@ targets:
           - CFBundleURLName: io.jobwin.mobile
             CFBundleURLSchemes:
               - jobwin
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Share your live location during field work so dispatch can see technician position on the map.
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDarkContent

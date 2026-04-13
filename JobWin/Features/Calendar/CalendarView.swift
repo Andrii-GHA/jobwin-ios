@@ -1,5 +1,21 @@
 ﻿import SwiftUI
 
+private enum CalendarPresentationMode: String, CaseIterable, Identifiable {
+    case agenda
+    case liveMap = "live_map"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .agenda:
+            return "Agenda"
+        case .liveMap:
+            return "Live Map"
+        }
+    }
+}
+
 @Observable
 final class CalendarModel {
     private let client: APIClient
@@ -110,6 +126,7 @@ struct CalendarView: View {
     let sessionStore: SessionStore
 
     @State private var model: CalendarModel?
+    @State private var presentationMode: CalendarPresentationMode = .agenda
 
     var body: some View {
         Group {
@@ -137,121 +154,139 @@ struct CalendarView: View {
             ErrorStateView(message: errorMessage) {
                 Task { await model.load() }
             }
-        } else {
-            List {
-                if let payload = model.payload {
-                    if let actionSuccessMessage = model.actionSuccessMessage {
-                        Section {
-                            Text(actionSuccessMessage)
-                                .font(.footnote)
-                                .foregroundStyle(JobWinPalette.accent)
+        } else if let payload = model.payload {
+            VStack(spacing: 0) {
+                Picker("View", selection: $presentationMode) {
+                    ForEach(CalendarPresentationMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+                if presentationMode == .agenda {
+                    agendaView(model: model, payload: payload)
+                } else {
+                    LiveMapView(sessionStore: sessionStore, orders: payload.orders)
+                }
+            }
+        }
+    }
+
+    private func agendaView(model: CalendarModel, payload: MobileCalendarDTO) -> some View {
+        List {
+            if let actionSuccessMessage = model.actionSuccessMessage {
+                Section {
+                    Text(actionSuccessMessage)
+                        .font(.footnote)
+                        .foregroundStyle(JobWinPalette.accent)
+                }
+            }
+
+            if let actionErrorMessage = model.actionErrorMessage {
+                Section {
+                    Text(actionErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            if let callSuccessMessage = model.callSuccessMessage {
+                Section {
+                    Text(callSuccessMessage)
+                        .font(.footnote)
+                        .foregroundStyle(JobWinPalette.accent)
+                }
+            }
+
+            if let callErrorMessage = model.callErrorMessage {
+                Section {
+                    Text(callErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Section("Orders") {
+                ForEach(payload.orders) { order in
+                    NavigationLink {
+                        OrderDetailView(sessionStore: sessionStore, orderId: order.id)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(order.title)
+                                .font(.headline)
+                            Text(
+                                JobWinFormatting.bulletJoin(
+                                    order.clientName,
+                                    JobWinFormatting.displayDateTime(order.startsAt)
+                                ) ?? order.clientName
+                            )
+                            .foregroundStyle(JobWinPalette.muted)
                         }
                     }
-
-                    if let actionErrorMessage = model.actionErrorMessage {
-                        Section {
-                            Text(actionErrorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-                    }
-
-                    if let callSuccessMessage = model.callSuccessMessage {
-                        Section {
-                            Text(callSuccessMessage)
-                                .font(.footnote)
-                                .foregroundStyle(JobWinPalette.accent)
-                        }
-                    }
-
-                    if let callErrorMessage = model.callErrorMessage {
-                        Section {
-                            Text(callErrorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-                    }
-
-                    Section("Orders") {
-                        ForEach(payload.orders) { order in
-                            NavigationLink {
-                                OrderDetailView(sessionStore: sessionStore, orderId: order.id)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(order.title)
-                                        .font(.headline)
-                                    Text(
-                                        JobWinFormatting.bulletJoin(
-                                            order.clientName,
-                                            JobWinFormatting.displayDateTime(order.startsAt)
-                                        ) ?? order.clientName
-                                    )
-                                    .foregroundStyle(JobWinPalette.muted)
-                                }
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        if let address = JobWinFormatting.normalizedText(order.address) {
+                            Button("Navigate") {
+                                MapRouting.openDirections(to: address)
                             }
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                if let address = JobWinFormatting.normalizedText(order.address) {
-                                    Button("Navigate") {
-                                        MapRouting.openDirections(to: address)
-                                    }
-                                    .tint(.blue)
-                                }
+                            .tint(.blue)
+                        }
 
-                                if let phone = JobWinFormatting.normalizedText(order.clientPhone) {
-                                    Button("Text") {
-                                        MessageRouting.openText(to: phone)
-                                    }
-                                    .tint(.green)
-                                }
+                        if let phone = JobWinFormatting.normalizedText(order.clientPhone) {
+                            Button("Text") {
+                                MessageRouting.openText(to: phone)
+                            }
+                            .tint(.green)
+                        }
 
-                                if order.clientId != nil {
-                                    Button(model.activeCallOrderId == order.id ? "..." : "Call") {
-                                        Task { await model.startRingOut(for: order) }
-                                    }
-                                    .tint(JobWinPalette.primary)
-                                    .disabled(model.activeCallOrderId != nil)
-                                }
+                        if order.clientId != nil {
+                            Button(model.activeCallOrderId == order.id ? "..." : "Call") {
+                                Task { await model.startRingOut(for: order) }
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                ForEach([OrderFieldAction.complete, OrderFieldAction.start, OrderFieldAction.arrived], id: \.id) { action in
-                                    Button(action.title) {
-                                        Task { await model.performOrderAction(orderId: order.id, action: action) }
-                                    }
-                                    .tint(color(for: action))
-                                    .disabled(model.activeOrderActionId != nil)
-                                }
-                            }
+                            .tint(JobWinPalette.primary)
+                            .disabled(model.activeCallOrderId != nil)
                         }
                     }
-
-                    if payload.tasksAvailable {
-                        Section("Tasks") {
-                            ForEach(payload.tasks) { task in
-                                NavigationLink {
-                                    TaskDetailView(sessionStore: sessionStore, taskId: task.id)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(task.title)
-                                            .font(.headline)
-                                        Text(JobWinFormatting.displayStatus(task.priority))
-                                            .foregroundStyle(JobWinPalette.muted)
-                                    }
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(model.activeTaskActionId == task.id ? "..." : "Done") {
-                                        Task { await model.completeTask(taskId: task.id) }
-                                    }
-                                    .tint(JobWinPalette.accent)
-                                    .disabled(model.activeTaskActionId != nil)
-                                }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        ForEach([OrderFieldAction.complete, OrderFieldAction.start, OrderFieldAction.arrived], id: \.id) { action in
+                            Button(action.title) {
+                                Task { await model.performOrderAction(orderId: order.id, action: action) }
                             }
+                            .tint(color(for: action))
+                            .disabled(model.activeOrderActionId != nil)
                         }
                     }
                 }
             }
-            .refreshable {
-                await model.load()
+
+            if payload.tasksAvailable {
+                Section("Tasks") {
+                    ForEach(payload.tasks) { task in
+                        NavigationLink {
+                            TaskDetailView(sessionStore: sessionStore, taskId: task.id)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(task.title)
+                                    .font(.headline)
+                                Text(JobWinFormatting.displayStatus(task.priority))
+                                    .foregroundStyle(JobWinPalette.muted)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(model.activeTaskActionId == task.id ? "..." : "Done") {
+                                Task { await model.completeTask(taskId: task.id) }
+                            }
+                            .tint(JobWinPalette.accent)
+                            .disabled(model.activeTaskActionId != nil)
+                        }
+                    }
+                }
             }
+        }
+        .refreshable {
+            await model.load()
         }
     }
 
@@ -266,4 +301,3 @@ struct CalendarView: View {
         }
     }
 }
-

@@ -6,6 +6,8 @@ enum MobileAPI {
     static let activityRoot = "/api/mobile/v1/activity"
     static let home = "/api/mobile/v1/home"
     static let calendar = "/api/mobile/v1/calendar"
+    static let location = "/api/mobile/v1/location"
+    static let locationTechnicians = "/api/mobile/v1/location/technicians"
     static let orders = "/api/mobile/v1/orders"
     static let clients = "/api/mobile/v1/clients"
     static let tasks = "/api/mobile/v1/tasks"

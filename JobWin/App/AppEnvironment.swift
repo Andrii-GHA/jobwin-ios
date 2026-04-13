@@ -7,4 +7,5 @@ final class AppEnvironment {
     let pushService = PushService()
     let activityStore = ActivityStore()
     let shellMetricsStore = ShellMetricsStore()
+    let locationService = LocationService()
 }
