@@ -82,9 +82,9 @@ enum AppRoute: Equatable {
         case "logs":
             self = .webPath(url.path.isEmpty ? "/logs" : "/logs\(url.query.map { "?\($0)" } ?? "")")
         case "estimate":
-            self = .webPath(pathParts.first.map { "/estimate/\($0)" } ?? "/estimates")
+            self = .webPath(pathParts.first.map { "/estimates/\($0)" } ?? "/estimates")
         case "invoice":
-            self = .webPath(pathParts.first.map { "/invoice/\($0)" } ?? "/invoices")
+            self = .webPath(pathParts.first.map { "/invoices/\($0)" } ?? "/invoices")
         case "estimates":
             self = .webPath(pathParts.first.map { "/estimates/\($0)" } ?? "/estimates")
         case "invoices":
@@ -146,9 +146,9 @@ enum AppRoute: Equatable {
         case "logs":
             self = .webPath(path)
         case "estimate":
-            self = .webPath(parts.count > 1 ? "/estimate/\(parts[1])" : "/estimates")
+            self = .webPath(parts.count > 1 ? "/estimates/\(parts[1])" : "/estimates")
         case "invoice":
-            self = .webPath(parts.count > 1 ? "/invoice/\(parts[1])" : "/invoices")
+            self = .webPath(parts.count > 1 ? "/invoices/\(parts[1])" : "/invoices")
         case "estimates":
             self = .webPath(parts.count > 1 ? "/estimates/\(parts[1])" : "/estimates")
         case "invoices":

@@ -3,8 +3,13 @@ import SwiftUI
 struct AuthView: View {
     let sessionStore: SessionStore
 
-    @State private var apiBaseURL = "https://app.jobwin.io"
+    @State private var apiBaseURL: String
     @State private var accessToken = ""
+
+    init(sessionStore: SessionStore) {
+        self.sessionStore = sessionStore
+        _apiBaseURL = State(initialValue: sessionStore.apiBaseURL)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {

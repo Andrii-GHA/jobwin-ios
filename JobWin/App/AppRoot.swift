@@ -42,6 +42,7 @@ struct AppRoot: View {
             } else {
                 sessionStore.environment.shellMetricsStore.clear()
                 sessionStore.environment.activityStore.clear()
+                sessionStore.environment.pushService.clearSessionState()
                 locationService.clearSession()
             }
         }

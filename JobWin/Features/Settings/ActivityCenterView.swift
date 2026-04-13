@@ -232,10 +232,10 @@ struct ActivityCenterView: View {
         case .thread:
             return .inbox
         case let .webPath(path):
-            if path.hasPrefix("/estimate/") {
+            if path.hasPrefix("/estimate/") || path.hasPrefix("/estimates/") {
                 return .webPath("/estimates")
             }
-            if path.hasPrefix("/invoice/") {
+            if path.hasPrefix("/invoice/") || path.hasPrefix("/invoices/") {
                 return .webPath("/invoices")
             }
             return nil

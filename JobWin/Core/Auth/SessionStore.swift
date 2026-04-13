@@ -67,9 +67,11 @@ final class SessionStore {
     }
 
     func signOut() {
+        environment.locationService.resetAfterSignOut()
         identity = nil
         accessToken = ""
         status = .idle
+        environment.pushService.clearSessionState()
         environment.keychain.delete(key: "jobwin.accessToken")
     }
 
@@ -100,6 +102,16 @@ final class SessionStore {
             environment.keychain.write(value: accessToken, key: "jobwin.accessToken")
             UserDefaults.standard.set(apiBaseURL, forKey: "jobwin.apiBaseURL")
             status = .authenticated
+        } catch let error as APIClientError {
+            identity = nil
+
+            if case let .requestFailed(statusCode, _) = error, statusCode == 401 || statusCode == 403 {
+                accessToken = ""
+                environment.keychain.delete(key: "jobwin.accessToken")
+                environment.pushService.clearSessionState()
+            }
+
+            status = .failed(error.localizedDescription)
         } catch {
             identity = nil
             status = .failed(error.localizedDescription)

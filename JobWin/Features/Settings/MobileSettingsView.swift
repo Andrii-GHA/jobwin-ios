@@ -200,6 +200,7 @@ struct MobileSettingsView: View {
                     Button("Sign out", role: .destructive) {
                         Task {
                             await sessionStore.environment.locationService.stopSharing()
+                            await sessionStore.environment.pushService.unregisterIfPossible(using: sessionStore)
                             sessionStore.signOut()
                             dismiss()
                         }

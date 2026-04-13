@@ -52,6 +52,13 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         sharingState = wantsSharing ? .paused : .idle
     }
 
+    func resetAfterSignOut() {
+        wantsSharing = false
+        UserDefaults.standard.set(false, forKey: Self.wantsSharingKey)
+        clearSession()
+        sharingState = .idle
+    }
+
     func handleScenePhase(_ phase: ScenePhase) {
         guard wantsSharing else { return }
 

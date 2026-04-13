@@ -74,6 +74,12 @@ final class PushService {
         pendingRoute = nil
     }
 
+    func clearSessionState() {
+        latestRegisteredTokenId = nil
+        latestErrorMessage = nil
+        pendingRoute = nil
+    }
+
     func unregisterIfPossible(using sessionStore: SessionStore) async {
         guard let client = sessionStore.makeAPIClient() else { return }
 
