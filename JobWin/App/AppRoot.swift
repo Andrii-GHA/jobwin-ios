@@ -25,9 +25,10 @@ struct AppRoot: View {
             }
         }
         .onOpenURL { url in
+            let access = AppRouteAccess(fullAccess: sessionStore.identity?.fullAccess == true)
             router.handle(
                 url: url,
-                fullAccess: sessionStore.identity?.fullAccess == true,
+                access: access,
                 isAuthenticated: sessionStore.isAuthenticated
             )
         }
@@ -52,9 +53,10 @@ struct AppRoot: View {
         }
         .onChange(of: sessionStore.environment.pushService.pendingRoute) { _, pendingRoute in
             guard let pendingRoute else { return }
+            let access = AppRouteAccess(fullAccess: sessionStore.identity?.fullAccess == true)
             router.open(
                 route: pendingRoute,
-                fullAccess: sessionStore.identity?.fullAccess == true,
+                access: access,
                 isAuthenticated: sessionStore.isAuthenticated
             )
             sessionStore.environment.pushService.clearPendingRoute()
@@ -77,7 +79,7 @@ struct AppRoot: View {
             }
 
             router.consumePendingRouteIfPossible(
-                fullAccess: sessionStore.identity?.fullAccess == true,
+                access: AppRouteAccess(fullAccess: sessionStore.identity?.fullAccess == true),
                 isAuthenticated: isAuthenticated
             )
         }

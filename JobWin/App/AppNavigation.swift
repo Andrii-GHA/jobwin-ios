@@ -1,6 +1,16 @@
 import Foundation
 import Observation
 
+struct AppRouteAccess: Equatable {
+    let inbox: Bool
+    let clients: Bool
+
+    init(fullAccess: Bool) {
+        inbox = fullAccess
+        clients = fullAccess
+    }
+}
+
 enum AppTab: Hashable {
     case home
     case calendar
@@ -214,10 +224,12 @@ enum AppRoute: Equatable {
         }
     }
 
-    func isAccessible(fullAccess: Bool) -> Bool {
+    func isAccessible(access: AppRouteAccess) -> Bool {
         switch self {
-        case .clients, .client, .inbox, .thread:
-            return fullAccess
+        case .clients, .client:
+            return access.clients
+        case .inbox, .thread:
+            return access.inbox
         default:
             return true
         }
@@ -241,25 +253,25 @@ final class AppRouter {
 
     private var pendingRoute: AppRoute?
 
-    func handle(url: URL, fullAccess: Bool, isAuthenticated: Bool) {
+    func handle(url: URL, access: AppRouteAccess, isAuthenticated: Bool) {
         guard let route = AppRoute(url: url) else { return }
-        open(route: route, fullAccess: fullAccess, isAuthenticated: isAuthenticated)
+        open(route: route, access: access, isAuthenticated: isAuthenticated)
     }
 
-    func open(route: AppRoute, fullAccess: Bool, isAuthenticated: Bool) {
+    func open(route: AppRoute, access: AppRouteAccess, isAuthenticated: Bool) {
         guard isAuthenticated else {
             pendingRoute = route
             return
         }
 
         pendingRoute = nil
-        apply(route: route, fullAccess: fullAccess)
+        apply(route: route, access: access)
     }
 
-    func consumePendingRouteIfPossible(fullAccess: Bool, isAuthenticated: Bool) {
+    func consumePendingRouteIfPossible(access: AppRouteAccess, isAuthenticated: Bool) {
         guard isAuthenticated, let pendingRoute else { return }
         self.pendingRoute = nil
-        apply(route: pendingRoute, fullAccess: fullAccess)
+        apply(route: pendingRoute, access: access)
     }
 
     func resetForSignOut() {
@@ -268,7 +280,7 @@ final class AppRouter {
         clearPaths()
     }
 
-    private func apply(route: AppRoute, fullAccess: Bool) {
+    private func apply(route: AppRoute, access: AppRouteAccess) {
         switch route {
         case .home:
             clearPaths()
@@ -298,7 +310,7 @@ final class AppRouter {
             ordersPath = [.detail(id)]
 
         case .clients:
-            guard fullAccess else {
+            guard access.clients else {
                 clearPaths()
                 selectedTab = .home
                 return
@@ -307,7 +319,7 @@ final class AppRouter {
             selectedTab = .clients
 
         case let .client(id):
-            guard fullAccess else {
+            guard access.clients else {
                 clearPaths()
                 selectedTab = .home
                 return
@@ -317,7 +329,7 @@ final class AppRouter {
             clientsPath = [.detail(id)]
 
         case .inbox:
-            guard fullAccess else {
+            guard access.inbox else {
                 clearPaths()
                 selectedTab = .home
                 return
@@ -326,7 +338,7 @@ final class AppRouter {
             selectedTab = .inbox
 
         case let .thread(id):
-            guard fullAccess else {
+            guard access.inbox else {
                 clearPaths()
                 selectedTab = .home
                 return
