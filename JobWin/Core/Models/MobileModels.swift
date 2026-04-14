@@ -156,6 +156,142 @@ struct MobileOrdersListDTO: Codable {
     let items: [OrderSummaryDTO]
 }
 
+enum EstimateDraftStatus: String, Codable, CaseIterable {
+    case draft
+    case uploading
+    case processing
+    case needsInput = "needs_input"
+    case readyForReview = "ready_for_review"
+    case confirmed
+    case converted
+    case failed
+}
+
+enum EstimateDraftAsyncStatus: String, Codable, CaseIterable {
+    case idle
+    case queued
+    case running
+    case completed
+    case failed
+}
+
+enum EstimateDraftMediaKind: String, Codable, CaseIterable {
+    case photo
+    case video
+    case audio
+}
+
+enum EstimateDraftMediaUploadStatus: String, Codable, CaseIterable {
+    case pending
+    case uploaded
+    case failed
+}
+
+struct EstimateDraftWorkItemDTO: Codable, Hashable {
+    let code: String?
+    let title: String
+    let description: String?
+    let quantity: Double?
+    let unit: String?
+    let confidence: Double
+    let evidence: [String]
+    let assumptions: [String]
+}
+
+struct EstimateDraftSuggestionDTO: Codable, Hashable {
+    struct TimeEstimateDTO: Codable, Hashable {
+        let minMinutes: Int?
+        let maxMinutes: Int?
+    }
+
+    let jobTypeCandidates: [String]
+    let workItems: [EstimateDraftWorkItemDTO]
+    let timeEstimate: TimeEstimateDTO
+    let missingInputs: [String]
+    let followUpQuestions: [String]
+    let overallConfidence: Double?
+}
+
+struct EstimateDraftPriceSummaryDTO: Codable, Hashable {
+    let laborMinMinutes: Int?
+    let laborMaxMinutes: Int?
+    let priceMinCents: Int?
+    let priceMaxCents: Int?
+    let currency: String
+    let pricingVersion: String
+    let assumptions: [String]
+    let warnings: [String]
+}
+
+struct EstimateDraftMediaDTO: Codable, Identifiable, Hashable {
+    let id: String
+    let kind: EstimateDraftMediaKind
+    let uploadStatus: EstimateDraftMediaUploadStatus
+    let processingStatus: EstimateDraftAsyncStatus
+    let mimeType: String?
+    let sizeBytes: Int?
+    let durationSeconds: Int?
+    let width: Int?
+    let height: Int?
+    let createdAt: String
+    let updatedAt: String
+}
+
+struct MobileEstimateDraftListItemDTO: Codable, Identifiable, Hashable {
+    let id: String
+    let clientId: String?
+    let orderId: String?
+    let title: String?
+    let notes: String?
+    let status: EstimateDraftStatus
+    let analysisStatus: EstimateDraftAsyncStatus
+    let pricingStatus: EstimateDraftAsyncStatus
+    let mediaCount: Int
+    let lastErrorCode: String?
+    let lastErrorMessage: String?
+    let isOwnedByCurrentUser: Bool
+    let createdAt: String
+    let updatedAt: String
+}
+
+struct MobileEstimateDraftDTO: Codable, Identifiable, Hashable {
+    let id: String
+    let clientId: String?
+    let orderId: String?
+    let title: String?
+    let notes: String?
+    let status: EstimateDraftStatus
+    let analysisStatus: EstimateDraftAsyncStatus
+    let pricingStatus: EstimateDraftAsyncStatus
+    let mediaCount: Int
+    let lastErrorCode: String?
+    let lastErrorMessage: String?
+    let isOwnedByCurrentUser: Bool
+    let createdAt: String
+    let updatedAt: String
+    let media: [EstimateDraftMediaDTO]
+    let suggestion: EstimateDraftSuggestionDTO?
+    let priceSummary: EstimateDraftPriceSummaryDTO?
+}
+
+struct MobileEstimateDraftsListDTO: Codable {
+    let items: [MobileEstimateDraftListItemDTO]
+}
+
+struct CreateEstimateDraftRequestBody: Encodable {
+    let clientId: String?
+    let orderId: String?
+    let title: String?
+    let notes: String?
+}
+
+struct UpdateEstimateDraftRequestBody: Encodable {
+    let clientId: String?
+    let orderId: String?
+    let title: String?
+    let notes: String?
+}
+
 struct MobileClientsListDTO: Codable {
     let items: [ClientSummaryDTO]
 }

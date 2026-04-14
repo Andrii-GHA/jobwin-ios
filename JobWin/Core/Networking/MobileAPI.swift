@@ -12,6 +12,7 @@ enum MobileAPI {
     static let clients = "/api/mobile/v1/clients"
     static let tasks = "/api/mobile/v1/tasks"
     static let inboxThreads = "/api/mobile/v1/inbox/threads"
+    static let estimateDrafts = "/api/mobile/v1/estimate-drafts"
     static let ringOut = "/api/mobile/v1/calls/ring-out"
     static let pushRegisterRoot = "/api/mobile/v1/push/register"
 
@@ -41,6 +42,10 @@ enum MobileAPI {
 
     static func taskComplete(_ taskId: String) -> String {
         "\(task(taskId))/complete"
+    }
+
+    static func estimateDraft(_ draftId: String) -> String {
+        "\(estimateDrafts)/\(draftId)"
     }
 
     static func tasksList(scope: String, status: String = "open", limit: Int = 100) -> String {

@@ -7,6 +7,7 @@ final class AppEnvironment {
     let keychain = KeychainStore(service: "io.jobwin.mobile")
     let pushService = PushService()
     let activityStore = ActivityStore()
+    let estimateDraftStore = EstimateDraftStore()
     let shellMetricsStore = ShellMetricsStore()
     let locationService = LocationService()
 }
