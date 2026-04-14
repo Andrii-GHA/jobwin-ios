@@ -192,6 +192,10 @@ Current scaffold progress:
   - when the app moves to background, sharing pauses instead of pretending that background GPS exists
   - a real field test should be done on a physical iPhone, not just Simulator
 
+## Planning Docs
+
+- `docs/AI_ESTIMATE_FROM_MEDIA_IOS_WORKLIST.md`: phased iOS worklist for local draft persistence, media capture, upload retry, AI review, and estimate conversion
+
 ## Local setup on macOS
 
 1. Install Xcode.
