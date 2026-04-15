@@ -194,6 +194,11 @@ Current scaffold progress:
 
 ## Planning Docs
 
+- `docs/MOBILE_PRODUCT_DIRECTION.md`: product direction, V1 priorities, non-goals, and decision rules
+- `docs/MOBILE_ARCHITECTURE.md`: app layers, BFF contract, auth, routing, gating, local persistence, media, push, and location architecture
+- `docs/MOBILE_FEATURE_STATUS.md`: current feature readiness matrix and implementation backlog
+- `docs/MOBILE_TESTING_CHECKLIST.md`: Mac, simulator, physical device, core flow, media estimate, live map, and push testing checklist
+- `docs/MOBILE_DEVELOPMENT_GUIDE.md`: development rules for new screens, mutations, local persistence, permission gating, estimate media, and live map work
 - `docs/AI_ESTIMATE_FROM_MEDIA_IOS_WORKLIST.md`: phased iOS worklist for local draft persistence, media capture, upload retry, AI review, and estimate conversion
 
 ## Local setup on macOS

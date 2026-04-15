@@ -140,9 +140,9 @@ Rules:
 
 ### Phase A: Draft Foundation
 
-- [ ] add native estimate draft domain models
-- [ ] add local persistence for draft metadata
-- [ ] add local persistence for queued media metadata
+- [x] add native estimate draft domain models
+- [x] add local persistence for draft metadata
+- [x] add local persistence for queued media metadata
 - [ ] add draft list screen for in-progress work
 - [ ] add resume-draft entry point from Home or Orders
 
