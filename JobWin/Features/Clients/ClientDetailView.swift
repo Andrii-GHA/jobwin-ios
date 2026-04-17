@@ -229,7 +229,7 @@ struct ClientDetailView: View {
                     }
 
                     if !payload.recentOrders.isEmpty {
-                        DetailSection(title: "Recent orders") {
+        DetailSection(title: "Recent jobs") {
                             ForEach(payload.recentOrders) { order in
                                 NavigationLink {
                                     OrderDetailView(sessionStore: sessionStore, orderId: order.id)

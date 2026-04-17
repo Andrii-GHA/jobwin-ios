@@ -144,7 +144,7 @@ Rules:
 - [x] add local persistence for draft metadata
 - [x] add local persistence for queued media metadata
 - [ ] add draft list screen for in-progress work
-- [ ] add resume-draft entry point from Home or Orders
+- [ ] add resume-draft entry point from Home or Jobs
 
 ### Phase B: Media Capture
 

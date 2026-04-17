@@ -211,7 +211,7 @@ struct CalendarView: View {
                 }
             }
 
-            Section("Orders") {
+            Section("Jobs") {
                 ForEach(payload.orders) { order in
                     NavigationLink {
                         OrderDetailView(sessionStore: sessionStore, orderId: order.id)

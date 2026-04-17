@@ -170,7 +170,7 @@ struct MobileSettingsView: View {
 
                 if let preferences = sessionStore.environment.activityStore.snapshot?.preferences {
                     Section("Notification preferences") {
-                        Toggle("Orders", isOn: binding(for: \.orders, from: preferences))
+                        Toggle("Jobs", isOn: binding(for: \.orders, from: preferences))
                         Toggle("Clients", isOn: binding(for: \.clients, from: preferences))
                         Toggle("Bookings", isOn: binding(for: \.bookings, from: preferences))
                         Toggle("Payments", isOn: binding(for: \.payments, from: preferences))

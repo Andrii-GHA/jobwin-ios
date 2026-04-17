@@ -492,7 +492,7 @@ enum OrderFieldAction: String, CaseIterable, Identifiable {
         switch self {
         case .arrived: return "Marked as arrived."
         case .start: return "Work started."
-        case .complete: return "Order completed."
+        case .complete: return "Job completed."
         }
     }
 }

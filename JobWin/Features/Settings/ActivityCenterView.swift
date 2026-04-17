@@ -191,7 +191,7 @@ struct ActivityCenterView: View {
         case .calendar:
             return "Calendar"
         case .orders:
-            return "Orders"
+            return "Jobs"
         case .tasks:
             return "Tasks"
         case .inbox:
@@ -199,7 +199,7 @@ struct ActivityCenterView: View {
         case .clients:
             return "Clients"
         case .order:
-            return "Order"
+            return "Job"
         case .task:
             return "Task"
         case .client:
@@ -249,7 +249,7 @@ struct ActivityCenterView: View {
     private func secondaryActionTitle(for route: AppRoute) -> String {
         switch route {
         case .orders:
-            return "All orders"
+            return "All jobs"
         case .tasks:
             return "All tasks"
         case .clients:

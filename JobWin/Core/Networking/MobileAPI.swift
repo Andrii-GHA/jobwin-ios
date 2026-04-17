@@ -8,7 +8,8 @@ enum MobileAPI {
     static let calendar = "/api/mobile/v1/calendar"
     static let location = "/api/mobile/v1/location"
     static let locationTechnicians = "/api/mobile/v1/location/technicians"
-    static let orders = "/api/mobile/v1/orders"
+    static let jobs = "/api/mobile/v1/jobs"
+    static let orders = jobs
     static let clients = "/api/mobile/v1/clients"
     static let tasks = "/api/mobile/v1/tasks"
     static let inboxThreads = "/api/mobile/v1/inbox/threads"

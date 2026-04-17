@@ -1,6 +1,6 @@
 # JobWin iOS Feature Status
 
-Last updated: 2026-04-15
+Last updated: 2026-04-17
 
 Status legend:
 
@@ -34,14 +34,14 @@ The next work should focus on:
 | Session persistence | Partial | Token stored in Keychain, base URL in UserDefaults | Validate refresh and expired-token UX on device |
 | App shell | Partial | Tab shell, role-aware tab visibility, badges | Polish empty/error/loading states and navigation consistency |
 | Home | Partial | Operator queues and shortcuts exist | Field-test with real data and tighten layout |
-| Calendar agenda | Partial | Orders/tasks agenda exists | Add stronger filtering, date navigation, and empty states |
+| Calendar agenda | Partial | Jobs/tasks agenda exists | Add stronger filtering, date navigation, and empty states |
 | Calendar live map | Scaffold | Technician pins and current device sharing exist | Add job/project address pins and map legend |
-| Orders list/detail | Partial | List/detail/actions exist | Verify all mutations and stale data refresh |
-| Order status mutations | Partial | Arrived/start/complete wired | Device-test permission, errors, refresh, and optimistic state |
-| Order reschedule | Partial | Native reschedule sheet exists | Validate date/time UX and backend error preservation |
+| Jobs list/detail | Partial | List/detail/actions exist | Verify all mutations and stale data refresh |
+| Job status mutations | Partial | Arrived/start/complete wired | Device-test permission, errors, refresh, and optimistic state |
+| Job reschedule | Partial | Native reschedule sheet exists | Validate date/time UX and backend error preservation |
 | Clients list/detail | Partial | List/detail/notes/quick actions exist | Add create/edit client if prioritized for mobile |
 | Inbox | Partial | Thread list/detail and notes exist | Verify message freshness and filters against real inbox data |
-| Tasks | Partial | List/detail/complete exists | Verify cross-links from Home, Calendar, Client, Order |
+| Tasks | Partial | List/detail/complete exists | Verify cross-links from Home, Calendar, Client, Job |
 | Activity Center | Partial | Feed, mark all read, route-aware actions, gating work done | Device-test role-specific CTA visibility |
 | Push notifications | Scaffold | Permission, APNs callback bridge, registration skeleton | Configure signing/capability and test physical device |
 | Deep links | Scaffold | Core `jobwin://` routes exist | Run simulator deep-link smoke tests |
@@ -97,7 +97,7 @@ The next work should focus on:
 
 ### 4. Live Map
 
-- add job/project address pins from calendar/orders payload
+- add job/project address pins from calendar/jobs payload
 - show current user and technicians distinctly
 - show freshness and accuracy
 - show paused/blocked/active sharing states clearly

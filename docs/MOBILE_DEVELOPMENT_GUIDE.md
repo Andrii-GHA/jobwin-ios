@@ -1,6 +1,6 @@
 # JobWin iOS Development Guide
 
-Last updated: 2026-04-15
+Last updated: 2026-04-17
 
 ## Purpose
 
@@ -37,7 +37,7 @@ Keep one branch to one product area when possible:
 - auth
 - estimate media
 - live map
-- orders
+- jobs
 - clients
 - inbox
 - push

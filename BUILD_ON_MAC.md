@@ -94,7 +94,7 @@ These still require real Xcode setup:
 4. Launch app
 5. Verify:
    - Home
-   - Orders list/detail
+- Jobs list/detail
    - Clients list/detail
    - Inbox thread detail
    - Activity center

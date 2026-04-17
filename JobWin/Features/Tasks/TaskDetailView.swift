@@ -178,7 +178,7 @@ struct TaskDetailView: View {
                     }
 
                     if !payload.relatedOrders.isEmpty {
-                        DetailSection(title: "Related orders") {
+                        DetailSection(title: "Related jobs") {
                             ForEach(payload.relatedOrders) { order in
                                 NavigationLink {
                                     OrderDetailView(sessionStore: sessionStore, orderId: order.id)

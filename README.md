@@ -11,8 +11,8 @@ This folder is the starting point for the native iOS client that sits on top of 
 - `GET /api/mobile/v1/activity`
 - `GET /api/mobile/v1/home`
 - `GET /api/mobile/v1/calendar`
-- `GET /api/mobile/v1/orders`
-- `GET /api/mobile/v1/orders/:orderId`
+- `GET /api/mobile/v1/jobs`
+- `GET /api/mobile/v1/jobs/:jobId`
 - `GET /api/mobile/v1/inbox/threads`
 - `GET /api/mobile/v1/inbox/threads/:threadId`
 - `POST /api/mobile/v1/location`
@@ -27,48 +27,48 @@ Initial app focus:
 - Home
 - Calendar
 - Inbox
-- Orders
+- Jobs
 - Clients
 
 Current scaffold progress:
 
 - token-based auth gate against the mobile BFF
 - `TabView` app shell with role-aware tab visibility
-- list screens for Home, Calendar, Inbox, Orders, and Clients
+- list screens for Home, Calendar, Inbox, Jobs, and Clients
 - Home stack now also exposes:
   - tasks list
   - task detail
 - detail navigation for:
-  - order detail
+  - job detail
   - client detail
   - inbox thread detail
   - task detail
-  - cross-links between client, order, and inbox thread detail screens
+  - cross-links between client, job, and inbox thread detail screens
 - mutation flows already wired in the iOS shell:
   - complete urgent task from Home
   - client `ring-out` directly from the Home follow-up queue
   - client SMS deep-link from the Home follow-up queue
   - `Open thread` shortcut from the Home follow-up queue
-  - `Latest order` shortcut from the Home follow-up queue
-  - turn-by-turn navigation from Home order cards
+  - `Latest job` shortcut from the Home follow-up queue
+  - turn-by-turn navigation from Home job cards
   - missed-call drill-in from Home into inbox thread detail
   - `Thread` shortcut from the Home missed-calls queue
   - `Client` shortcut from the Home missed-calls queue
   - `Call` shortcut from the Home missed-calls queue
   - `Text` shortcut from the Home missed-calls queue
   - `Navigate` shortcut from the Home missed-calls queue
-  - order `arrived / start / complete` actions from order detail
-  - order `reschedule` flow from order detail
-  - client SMS deep-link from order detail
-  - order navigation from order detail
-  - client `ring-out` from Orders list swipe action
-  - client SMS deep-link from Orders list swipe action
-  - order navigation from Orders list swipe action
-  - order `arrived / start / complete` swipe actions from Calendar
+  - job `arrived / start / complete` actions from job detail
+  - job `reschedule` flow from job detail
+  - client SMS deep-link from job detail
+  - job navigation from job detail
+  - client `ring-out` from Jobs list swipe action
+  - client SMS deep-link from Jobs list swipe action
+  - job navigation from Jobs list swipe action
+  - job `arrived / start / complete` swipe actions from Calendar
   - client `ring-out` from Calendar swipe action
   - client SMS deep-link from Calendar swipe action
-  - order navigation from Calendar swipe action
-  - task completion directly from order detail
+  - job navigation from Calendar swipe action
+  - task completion directly from job detail
   - task completion from dedicated Tasks list
   - task completion from dedicated task detail
   - client `ring-out` from client detail
@@ -78,7 +78,7 @@ Current scaffold progress:
   - client SMS deep-link from Clients list swipe action
   - client navigation from Clients list swipe action
   - `Open thread` shortcut from Clients list
-  - `Latest order` shortcut from Clients list
+  - `Latest job` shortcut from Clients list
   - client `ring-out` from inbox thread detail
   - client SMS deep-link from inbox thread detail
   - client navigation from inbox thread detail
@@ -88,7 +88,7 @@ Current scaffold progress:
 - shared formatting helper cleaned up so list/detail metadata separators render consistently
 - primary list and detail screens now support pull-to-refresh against the mobile BFF
 - primary list screens now support local search:
-  - Orders
+  - Jobs
   - Clients
   - Inbox
 - Inbox also includes local quick filters:
@@ -100,14 +100,14 @@ Current scaffold progress:
   - `jobwin://calendar`
   - `jobwin://tasks`
   - `jobwin://task/<id>`
-  - `jobwin://orders`
-  - `jobwin://order/<id>`
+  - `jobwin://jobs`
+  - `jobwin://job/<id>`
   - `jobwin://inbox`
   - `jobwin://thread/<id>`
   - `jobwin://clients`
   - `jobwin://client/<id>`
   - push payload aliases now also map:
-    - `booking` / `bookings` -> order flows
+    - `booking` / `bookings` -> job flows
     - `payment` / `payments` -> billing web fallback
     - `message` / `thread` / `communication` -> inbox thread flows
     - `ai_call` / `ai_calls` / `phone_interaction` -> inbox
@@ -133,20 +133,20 @@ Current scaffold progress:
   - taps on activity items route into the existing app router
   - activity items now also expose compact route-aware quick-open actions
     - primary target action
-    - secondary collection fallback where it helps (`All orders`, `All clients`, `All inbox`, etc.)
+    - secondary collection fallback where it helps (`All jobs`, `All clients`, `All inbox`, etc.)
   - estimate/invoice activity falls back to a native Safari sheet when no native screen exists yet
   - unread activity is now also mirrored to the iOS app icon badge
 - app shell tab badges now mirror the operator queue using `/api/mobile/home`:
   - Home -> urgent tasks
-  - Orders -> today orders
+  - Jobs -> today jobs
   - Inbox -> unread inbox
   - Clients -> follow-up queue
-  - badges are also refreshed after task completion and order field mutations from native screens
+  - badges are also refreshed after task completion and job field mutations from native screens
   - badges and activity snapshot are also refreshed when:
     - the app returns to active state
     - a foreground push arrives
 - Settings now also exposes native notification preference toggles backed by the mobile activity endpoint:
-  - orders
+  - jobs
   - clients
   - bookings
   - payments
@@ -158,17 +158,17 @@ Current scaffold progress:
   - Home urgent tasks
   - Calendar tasks
   - Client recent tasks
-  - Order tasks
-- mobile order summaries now include lightweight client call context for list-level quick actions:
+  - Job tasks
+- mobile job summaries now include lightweight client call context for list-level quick actions:
   - `clientId`
   - `clientPhone`
 - mobile client summaries now also include lightweight address context for list-level navigation:
   - `address`
-- mobile client summaries now also include lightweight thread/order navigation context:
+- mobile client summaries now also include lightweight thread/job navigation context:
   - `threadId`
   - `latestOrderId`
 - Calendar now also includes a native `Agenda / Live Map` segmented switch:
-  - `Agenda` preserves the existing orders/tasks operator flow
+  - `Agenda` preserves the existing jobs/tasks operator flow
   - `Live Map` renders technician pins from `/api/mobile/v1/location/technicians`
   - technicians can start/stop foreground location sharing directly from the app
   - the map auto-refreshes every 20 seconds and recenters around visible technician/device coordinates
