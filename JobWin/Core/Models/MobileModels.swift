@@ -407,6 +407,57 @@ struct NoteRequestBody: Encodable {
     let body: String
 }
 
+enum JobNoteKind: String, Codable, CaseIterable {
+    case voice
+    case text
+}
+
+enum JobNoteProcessingStatus: String, Codable, CaseIterable {
+    case pending
+    case completed
+    case failed
+}
+
+struct JobNoteAudioDTO: Codable, Hashable {
+    let fileAssetId: String?
+    let mimeType: String?
+    let sizeBytes: Int?
+    let bucket: String?
+    let path: String?
+}
+
+struct JobNoteDTO: Codable, Identifiable, Hashable {
+    let id: String
+    let orderId: String?
+    let clientId: String?
+    let createdByUserId: String?
+    let noteKind: JobNoteKind
+    let title: String?
+    let body: String?
+    let transcript: String?
+    let summary: String?
+    let transcriptStatus: JobNoteProcessingStatus
+    let summaryStatus: JobNoteProcessingStatus
+    let durationSeconds: Int?
+    let audio: JobNoteAudioDTO?
+    let convertedEstimateDraftId: String?
+    let convertedTaskId: String?
+    let createdAt: String
+    let updatedAt: String
+}
+
+struct JobNoteMutationResponseDTO: Codable {
+    let ok: Bool
+    let note: JobNoteDTO
+}
+
+struct JobNoteConversionResponseDTO: Codable {
+    let ok: Bool
+    let noteId: String
+    let estimateDraftId: String?
+    let taskId: String?
+}
+
 struct AppointmentFieldStateDTO: Codable {
     let arrivedAt: String?
     let startedAt: String?
@@ -664,5 +715,6 @@ struct OrderDetailDTO: Codable {
     let client: ClientSummaryDTO?
     let callSummaries: [CallSummaryDTO]
     let tasks: [TaskSummaryDTO]
+    let jobNotes: [JobNoteDTO]
 }
 

@@ -1,4 +1,11 @@
-﻿import Foundation
+import Foundation
+
+struct MultipartFormFile {
+    let fieldName: String
+    let fileName: String
+    let mimeType: String
+    let data: Data
+}
 
 struct APIClient {
     let baseURL: String
@@ -23,6 +30,18 @@ struct APIClient {
         var request = try makeRequest(path: path, method: "POST")
         request.httpBody = try JSONEncoder().encode(body)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return try await send(request)
+    }
+
+    func postMultipart<Response: Decodable>(
+        _ path: String,
+        fields: [String: String] = [:],
+        file: MultipartFormFile
+    ) async throws -> Response {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = try makeRequest(path: path, method: "POST")
+        request.httpBody = makeMultipartBody(fields: fields, file: file, boundary: boundary)
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         return try await send(request)
     }
 
@@ -63,6 +82,35 @@ struct APIClient {
         return versionedPrefix + path.dropFirst(legacyPrefix.count)
     }
 
+    private func makeMultipartBody(
+        fields: [String: String],
+        file: MultipartFormFile,
+        boundary: String
+    ) -> Data {
+        let lineBreak = "\r\n"
+        var body = Data()
+
+        for (key, value) in fields where !value.isEmpty {
+            body.append(Data("--\(boundary)\(lineBreak)".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"\(key)\"\(lineBreak)\(lineBreak)".utf8))
+            body.append(Data("\(value)\(lineBreak)".utf8))
+        }
+
+        body.append(Data("--\(boundary)\(lineBreak)".utf8))
+        body.append(
+            Data(
+                "Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(file.fileName)\"\(lineBreak)"
+                    .utf8
+            )
+        )
+        body.append(Data("Content-Type: \(file.mimeType)\(lineBreak)\(lineBreak)".utf8))
+        body.append(file.data)
+        body.append(Data(lineBreak.utf8))
+        body.append(Data("--\(boundary)--\(lineBreak)".utf8))
+
+        return body
+    }
+
     private func send<Response: Decodable>(_ request: URLRequest) async throws -> Response {
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -95,4 +143,3 @@ enum APIClientError: LocalizedError {
         }
     }
 }
-

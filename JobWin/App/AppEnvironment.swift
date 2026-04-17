@@ -8,6 +8,7 @@ final class AppEnvironment {
     let pushService = PushService()
     let activityStore = ActivityStore()
     let estimateDraftStore = EstimateDraftStore()
+    let jobNoteStore = JobNoteStore()
     let shellMetricsStore = ShellMetricsStore()
     let locationService = LocationService()
 }

@@ -4,6 +4,9 @@ import SwiftUI
 final class OrderDetailModel {
     private let client: APIClient
     private let orderId: String
+    private let workspaceId: String
+    private let userId: String
+    private let jobNoteStore: JobNoteStore
     private let shellMetricsStore: ShellMetricsStore
 
     var isLoading = false
@@ -20,21 +23,39 @@ final class OrderDetailModel {
     var isCalling = false
     var callErrorMessage: String?
     var callSuccessMessage: String?
+    var noteErrorMessage: String?
+    var noteSuccessMessage: String?
+    var isSavingVoiceNote = false
+    var convertingEstimateNoteId: String?
+    var convertingTaskNoteId: String?
     var payload: OrderDetailDTO?
 
-    init(client: APIClient, orderId: String, shellMetricsStore: ShellMetricsStore) {
+    init(
+        client: APIClient,
+        orderId: String,
+        workspaceId: String,
+        userId: String,
+        jobNoteStore: JobNoteStore,
+        shellMetricsStore: ShellMetricsStore
+    ) {
         self.client = client
         self.orderId = orderId
+        self.workspaceId = workspaceId
+        self.userId = userId
+        self.jobNoteStore = jobNoteStore
         self.shellMetricsStore = shellMetricsStore
     }
 
-    func load() async {
+    func load(syncPendingNotes: Bool = true) async {
         if isLoading { return }
         isLoading = true
         errorMessage = nil
 
         do {
             payload = try await client.get(MobileAPI.order(orderId))
+            if syncPendingNotes, await syncPendingJobNotes() {
+                payload = try await client.get(MobileAPI.order(orderId))
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -138,12 +159,164 @@ final class OrderDetailModel {
         }
     }
 
+    func saveVoiceNote(_ draft: JobVoiceNoteDraftInput) async -> Bool {
+        guard !isSavingVoiceNote else { return false }
+
+        let localNote = await MainActor.run {
+            jobNoteStore.createPendingNote(
+                workspaceId: workspaceId,
+                userId: userId,
+                orderId: orderId,
+                clientId: payload?.client?.id,
+                title: draft.title,
+                body: draft.body,
+                localFilePath: draft.recording.fileURL.path,
+                mimeType: draft.recording.mimeType,
+                sizeBytes: draft.recording.sizeBytes,
+                durationSeconds: draft.recording.durationSeconds
+            )
+        }
+
+        noteSuccessMessage = "Voice note stored locally. Syncing..."
+        return await uploadLocalJobNote(localNote.id)
+    }
+
+    func retryVoiceNote(localId: String) async {
+        _ = await uploadLocalJobNote(localId)
+    }
+
+    func convertNoteToEstimate(noteId: String) async {
+        guard convertingEstimateNoteId == nil else { return }
+
+        convertingEstimateNoteId = noteId
+        noteErrorMessage = nil
+        noteSuccessMessage = nil
+
+        defer {
+            convertingEstimateNoteId = nil
+        }
+
+        do {
+            let response: JobNoteConversionResponseDTO = try await client.post(
+                MobileAPI.orderNoteConvertToEstimate(orderId, noteId: noteId)
+            )
+            if let estimateDraftId = response.estimateDraftId {
+                await MainActor.run {
+                    jobNoteStore.updateConversion(remoteId: noteId, estimateDraftId: estimateDraftId)
+                }
+            }
+            noteSuccessMessage = "Estimate draft created from voice note."
+            await load(syncPendingNotes: false)
+        } catch {
+            noteErrorMessage = error.localizedDescription
+        }
+    }
+
+    func convertNoteToTask(noteId: String) async {
+        guard convertingTaskNoteId == nil else { return }
+
+        convertingTaskNoteId = noteId
+        noteErrorMessage = nil
+        noteSuccessMessage = nil
+
+        defer {
+            convertingTaskNoteId = nil
+        }
+
+        do {
+            let response: JobNoteConversionResponseDTO = try await client.post(
+                MobileAPI.orderNoteConvertToTask(orderId, noteId: noteId)
+            )
+            if let taskId = response.taskId {
+                await MainActor.run {
+                    jobNoteStore.updateConversion(remoteId: noteId, taskId: taskId)
+                }
+            }
+            noteSuccessMessage = "Task created from voice note."
+            await load(syncPendingNotes: false)
+            await shellMetricsStore.refresh(using: client)
+        } catch {
+            noteErrorMessage = error.localizedDescription
+        }
+    }
+
     var currentScheduleStart: Date {
         JobWinFormatting.date(from: payload?.order.startsAt) ?? Date()
     }
 
     var currentScheduleEnd: Date {
         JobWinFormatting.date(from: payload?.order.endsAt) ?? currentScheduleStart.addingTimeInterval(60 * 60)
+    }
+
+    private func syncPendingJobNotes() async -> Bool {
+        let pendingNotes = await MainActor.run {
+            jobNoteStore.pendingOrRetryableNotes(
+                workspaceId: workspaceId,
+                userId: userId,
+                orderId: orderId
+            )
+        }
+
+        var uploadedAny = false
+        for note in pendingNotes where note.uploadStatus != .uploading {
+            uploadedAny = await uploadLocalJobNote(note.id) || uploadedAny
+        }
+        return uploadedAny
+    }
+
+    @discardableResult
+    private func uploadLocalJobNote(_ localId: String) async -> Bool {
+        let localNote = await MainActor.run {
+            jobNoteStore.note(withId: localId)
+        }
+        guard let localNote else { return false }
+
+        let fileURL = URL(fileURLWithPath: localNote.localFilePath)
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            await MainActor.run {
+                jobNoteStore.markUploadFailed(localId: localId, errorMessage: "Recorded audio file is missing.")
+            }
+            noteErrorMessage = "Recorded audio file is missing."
+            return false
+        }
+
+        do {
+            let data = try Data(contentsOf: fileURL)
+            isSavingVoiceNote = true
+            noteErrorMessage = nil
+            await MainActor.run {
+                jobNoteStore.markUploading(localId: localId)
+            }
+
+            let response: JobNoteMutationResponseDTO = try await client.postMultipart(
+                MobileAPI.orderNotes(orderId),
+                fields: [
+                    "title": localNote.title ?? "",
+                    "body": localNote.body,
+                    "durationSeconds": localNote.durationSeconds.map(String.init) ?? "",
+                ],
+                file: MultipartFormFile(
+                    fieldName: "audio",
+                    fileName: fileURL.lastPathComponent,
+                    mimeType: localNote.mimeType ?? "audio/mp4",
+                    data: data
+                )
+            )
+
+            await MainActor.run {
+                jobNoteStore.bindRemoteNote(localId: localId, remoteNote: response.note)
+            }
+            noteSuccessMessage = "Voice note saved."
+            isSavingVoiceNote = false
+            return true
+        } catch {
+            await MainActor.run {
+                jobNoteStore.markUploadFailed(localId: localId, errorMessage: error.localizedDescription)
+            }
+            noteErrorMessage = error.localizedDescription
+            isSavingVoiceNote = false
+            return false
+        }
     }
 }
 
@@ -153,6 +326,7 @@ struct OrderDetailView: View {
 
     @State private var model: OrderDetailModel?
     @State private var isShowingReschedule = false
+    @State private var isShowingVoiceNoteComposer = false
 
     var body: some View {
         Group {
@@ -164,6 +338,13 @@ struct OrderDetailView: View {
         }
         .navigationTitle("Job")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Notes") {
+                    isShowingVoiceNoteComposer = true
+                }
+            }
+        }
         .sheet(isPresented: $isShowingReschedule) {
             if let model {
                 RescheduleOrderView(
@@ -184,12 +365,35 @@ struct OrderDetailView: View {
                 )
             }
         }
+        .sheet(isPresented: $isShowingVoiceNoteComposer) {
+            if let model {
+                JobVoiceNoteComposerView(
+                    isSaving: model.isSavingVoiceNote,
+                    errorMessage: model.noteErrorMessage,
+                    onSave: { draft in
+                        Task {
+                            let saved = await model.saveVoiceNote(draft)
+                            if saved {
+                                isShowingVoiceNoteComposer = false
+                                await model.load(syncPendingNotes: false)
+                            }
+                        }
+                    }
+                )
+            }
+        }
         .task {
-            guard let client = sessionStore.makeAPIClient() else { return }
+            guard
+                let client = sessionStore.makeAPIClient(),
+                let identity = sessionStore.identity
+            else { return }
             if model == nil {
                 model = OrderDetailModel(
                     client: client,
                     orderId: orderId,
+                    workspaceId: identity.workspaceId,
+                    userId: identity.userId,
+                    jobNoteStore: sessionStore.environment.jobNoteStore,
                     shellMetricsStore: sessionStore.environment.shellMetricsStore
                 )
             }
@@ -200,6 +404,8 @@ struct OrderDetailView: View {
     @ViewBuilder
     private func content(model: OrderDetailModel) -> some View {
         let canRingOut = sessionStore.identity?.fullAccess == true
+        let localPendingNotes = sessionStore.environment.jobNoteStore
+            .pendingOrRetryableNotes(for: sessionStore, orderId: orderId)
 
         if model.isLoading, model.payload == nil {
             LoadingStateView(title: "Loading job...")
@@ -211,6 +417,20 @@ struct OrderDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     OrderHeroCard(order: payload.order)
+
+                    if let noteSuccessMessage = model.noteSuccessMessage {
+                        Text(noteSuccessMessage)
+                            .font(.footnote)
+                            .foregroundStyle(JobWinPalette.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let noteErrorMessage = model.noteErrorMessage {
+                        Text(noteErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
 
                     DetailSection(title: "Actions") {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -334,6 +554,46 @@ struct OrderDetailView: View {
                         }
                     }
 
+                    DetailSection(title: "Voice notes") {
+                        Button("Record voice note") {
+                            isShowingVoiceNoteComposer = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(JobWinPalette.primary)
+                        .disabled(model.isSavingVoiceNote)
+
+                        if localPendingNotes.isEmpty && payload.jobNotes.isEmpty {
+                            DetailLine(
+                                title: "No voice notes yet",
+                                subtitle: "Record work done, materials to buy, or anything that should become a task or estimate."
+                            )
+                        }
+
+                        ForEach(localPendingNotes) { localNote in
+                            LocalJobNoteCard(
+                                note: localNote,
+                                isRetrying: model.isSavingVoiceNote && (model.noteErrorMessage != nil),
+                                onRetry: {
+                                    Task { await model.retryVoiceNote(localId: localNote.id) }
+                                }
+                            )
+                        }
+
+                        ForEach(payload.jobNotes) { note in
+                            RemoteJobNoteCard(
+                                note: note,
+                                isConvertingToEstimate: model.convertingEstimateNoteId == note.id,
+                                isConvertingToTask: model.convertingTaskNoteId == note.id,
+                                onConvertToEstimate: {
+                                    Task { await model.convertNoteToEstimate(noteId: note.id) }
+                                },
+                                onConvertToTask: {
+                                    Task { await model.convertNoteToTask(noteId: note.id) }
+                                }
+                            )
+                        }
+                    }
+
                     if !payload.tasks.isEmpty {
                         DetailSection(title: "Tasks") {
                             ForEach(payload.tasks) { task in
@@ -438,5 +698,174 @@ private struct OrderHeroCard: View {
             }
         }
         .jobWinCard()
+    }
+}
+
+private struct LocalJobNoteCard: View {
+    let note: JobVoiceNoteLocalRecord
+    let isRetrying: Bool
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                StatusBadge(text: uploadLabel, color: uploadColor)
+                Spacer()
+                Text(JobWinFormatting.displayDateTime(isoDateString) ?? isoDateString)
+                    .font(.caption)
+                    .foregroundStyle(JobWinPalette.muted)
+            }
+
+            if let title = JobWinFormatting.normalizedText(note.title) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(JobWinPalette.ink)
+            }
+
+            if let bodyText = JobWinFormatting.normalizedText(note.body) {
+                Text(bodyText)
+                    .font(.body)
+                    .foregroundStyle(JobWinPalette.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let subtitle = metadataLabel {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(JobWinPalette.muted)
+            }
+
+            if let error = JobWinFormatting.normalizedText(note.lastErrorMessage) {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            if note.uploadStatus == .failed {
+                Button(isRetrying ? "Retrying..." : "Retry sync", action: onRetry)
+                    .buttonStyle(.bordered)
+                    .disabled(isRetrying)
+            }
+        }
+        .jobWinCard()
+    }
+
+    private var isoDateString: String {
+        JobWinFormatting.iso8601String(from: note.createdAt)
+    }
+
+    private var uploadLabel: String {
+        switch note.uploadStatus {
+        case .pending: return "Pending sync"
+        case .uploading: return "Uploading"
+        case .uploaded: return "Saved"
+        case .failed: return "Sync failed"
+        }
+    }
+
+    private var uploadColor: Color {
+        switch note.uploadStatus {
+        case .pending: return .orange
+        case .uploading: return JobWinPalette.primary
+        case .uploaded: return JobWinPalette.accent
+        case .failed: return .red
+        }
+    }
+
+    private var metadataLabel: String? {
+        JobWinFormatting.bulletJoin(
+            note.durationSeconds.map { "\($0 / 60)m \($0 % 60)s" },
+            note.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) }
+        )
+    }
+}
+
+private struct RemoteJobNoteCard: View {
+    let note: JobNoteDTO
+    let isConvertingToEstimate: Bool
+    let isConvertingToTask: Bool
+    let onConvertToEstimate: () -> Void
+    let onConvertToTask: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                StatusBadge(text: "Saved", color: JobWinPalette.accent)
+                if note.convertedEstimateDraftId != nil {
+                    StatusBadge(text: "Estimate", color: JobWinPalette.primary)
+                }
+                if note.convertedTaskId != nil {
+                    StatusBadge(text: "Task", color: .orange)
+                }
+                Spacer()
+                Text(JobWinFormatting.displayDateTime(note.createdAt) ?? note.createdAt)
+                    .font(.caption)
+                    .foregroundStyle(JobWinPalette.muted)
+            }
+
+            if let title = JobWinFormatting.normalizedText(note.title) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(JobWinPalette.ink)
+            }
+
+            if let summary = JobWinFormatting.normalizedText(note.summary) {
+                Text(summary)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(JobWinPalette.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let bodyText = JobWinFormatting.normalizedText(note.body) {
+                Text(bodyText)
+                    .font(.footnote)
+                    .foregroundStyle(JobWinPalette.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let transcriptPreview = transcriptPreview {
+                Text(transcriptPreview)
+                    .font(.footnote)
+                    .foregroundStyle(JobWinPalette.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let metadata = metadataLabel {
+                Text(metadata)
+                    .font(.caption)
+                    .foregroundStyle(JobWinPalette.muted)
+            }
+
+            HStack(spacing: 10) {
+                Button(isConvertingToTask ? "Creating task..." : "Convert to task", action: onConvertToTask)
+                    .buttonStyle(.bordered)
+                    .disabled(isConvertingToTask || note.convertedTaskId != nil)
+
+                Button(
+                    isConvertingToEstimate ? "Creating estimate..." : "Convert to estimate",
+                    action: onConvertToEstimate
+                )
+                .buttonStyle(.borderedProminent)
+                .tint(JobWinPalette.primary)
+                .disabled(isConvertingToEstimate || note.convertedEstimateDraftId != nil)
+            }
+        }
+        .jobWinCard()
+    }
+
+    private var transcriptPreview: String? {
+        guard let transcript = JobWinFormatting.normalizedText(note.transcript) else { return nil }
+        if transcript.count <= 220 {
+            return transcript
+        }
+        return String(transcript.prefix(217)) + "..."
+    }
+
+    private var metadataLabel: String? {
+        JobWinFormatting.bulletJoin(
+            note.durationSeconds.map { "\($0 / 60)m \($0 % 60)s" },
+            note.audio?.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) },
+            note.transcriptStatus == .completed ? "Transcript ready" : nil
+        )
     }
 }

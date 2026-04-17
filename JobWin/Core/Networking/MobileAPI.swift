@@ -29,6 +29,18 @@ enum MobileAPI {
         "\(order(orderId))/reschedule"
     }
 
+    static func orderNotes(_ orderId: String) -> String {
+        "\(order(orderId))/notes"
+    }
+
+    static func orderNoteConvertToEstimate(_ orderId: String, noteId: String) -> String {
+        "\(orderNotes(orderId))/\(noteId)/convert-to-estimate"
+    }
+
+    static func orderNoteConvertToTask(_ orderId: String, noteId: String) -> String {
+        "\(orderNotes(orderId))/\(noteId)/convert-to-task"
+    }
+
     static func client(_ clientId: String) -> String {
         "\(clients)/\(clientId)"
     }
