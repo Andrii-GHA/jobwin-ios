@@ -221,7 +221,7 @@ private struct HomeMetricGrid: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            MetricCard(title: "Today orders", value: "\(payload.todayOrders.count)")
+            MetricCard(title: "Today jobs", value: "\(payload.todayOrders.count)")
             MetricCard(title: "Unread inbox", value: "\(payload.unreadInboxCount)")
             MetricCard(title: "Missed calls", value: "\(payload.missedCalls.count)")
             MetricCard(title: "Urgent tasks", value: "\(payload.urgentTasks.count)")
@@ -461,7 +461,7 @@ private struct HomeClientSection: View {
                         NavigationLink {
                             OrderDetailView(sessionStore: sessionStore, orderId: latestOrderId)
                         } label: {
-                            Text("Latest order")
+                            Text("Latest job")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)

@@ -128,7 +128,7 @@ final class OrderDetailModel {
                 )
             )
             guard response.ok else { return false }
-            rescheduleSuccessMessage = "Order rescheduled."
+            rescheduleSuccessMessage = "Job rescheduled."
             await load()
             await shellMetricsStore.refresh(using: client)
             return true
@@ -159,15 +159,15 @@ struct OrderDetailView: View {
             if let model {
                 content(model: model)
             } else {
-                LoadingStateView(title: "Preparing order...")
+                LoadingStateView(title: "Preparing job...")
             }
         }
-        .navigationTitle("Order")
+        .navigationTitle("Job")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isShowingReschedule) {
             if let model {
                 RescheduleOrderView(
-                    title: "Reschedule order",
+                    title: "Reschedule job",
                     initialStart: model.currentScheduleStart,
                     initialEnd: model.currentScheduleEnd,
                     isSaving: model.isRescheduling,
@@ -202,7 +202,7 @@ struct OrderDetailView: View {
         let canRingOut = sessionStore.identity?.fullAccess == true
 
         if model.isLoading, model.payload == nil {
-            LoadingStateView(title: "Loading order...")
+            LoadingStateView(title: "Loading job...")
         } else if let errorMessage = model.errorMessage, model.payload == nil {
             ErrorStateView(message: errorMessage) {
                 Task { await model.load() }
@@ -389,7 +389,7 @@ struct OrderDetailView: View {
                 await model.load()
             }
         } else {
-            ErrorStateView(message: "Order data is unavailable.") {
+            ErrorStateView(message: "Job data is unavailable.") {
                 Task { await model.load() }
             }
         }

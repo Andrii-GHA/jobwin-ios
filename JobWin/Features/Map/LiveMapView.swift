@@ -122,7 +122,7 @@ struct LiveMapView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Live technicians")
                         .font(.headline)
-                    Text("\(model.technicians.count) technicians visible | \(orders.count) scheduled orders")
+                    Text("\(model.technicians.count) technicians visible | \(orders.count) scheduled jobs")
                         .font(.subheadline)
                         .foregroundStyle(JobWinPalette.muted)
                 }

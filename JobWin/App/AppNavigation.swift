@@ -22,7 +22,7 @@ enum AppTab: Hashable {
         switch self {
         case .home: return "Home"
         case .calendar: return "Calendar"
-        case .orders: return "Orders"
+        case .orders: return "Jobs"
         case .inbox: return "Inbox"
         case .clients: return "Clients"
         }
@@ -81,7 +81,7 @@ enum AppRoute: Equatable {
             self = .home
         case "calendar":
             self = .calendar
-        case "orders":
+        case "jobs", "orders":
             self = .orders
         case "tasks":
             self = .tasks
@@ -103,7 +103,7 @@ enum AppRoute: Equatable {
             self = .inbox
         case "clients":
             self = .clients
-        case "order":
+        case "job", "order":
             guard let id = pathParts.first, !id.isEmpty else { return nil }
             self = .order(id)
         case "task":
@@ -137,7 +137,13 @@ enum AppRoute: Equatable {
             self = .home
         case "calendar":
             self = .calendar
-        case "orders":
+        case "jobs", "orders":
+            if parts.count > 1 {
+                self = .order(parts[1])
+            } else {
+                self = .orders
+            }
+        case "job":
             if parts.count > 1 {
                 self = .order(parts[1])
             } else {
@@ -203,7 +209,7 @@ enum AppRoute: Equatable {
         guard !entityType.isEmpty else { return nil }
 
         switch entityType {
-        case "appointment", "order", "booking", "bookings":
+        case "appointment", "job", "jobs", "order", "booking", "bookings":
             self = entityId.isEmpty ? .orders : .order(entityId)
         case "task":
             self = entityId.isEmpty ? .tasks : .task(entityId)

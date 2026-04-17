@@ -1,6 +1,6 @@
 # JobWin iOS Product Direction
 
-Last updated: 2026-04-15
+Last updated: 2026-04-17
 
 ## Purpose
 
@@ -28,7 +28,7 @@ V1 should be good enough for a real operator or technician to:
 
 - sign in without developer-only token handling
 - see today's work and urgent follow-up items
-- open orders, clients, inbox threads, and tasks
+- open jobs, clients, inbox threads, and tasks
 - perform common field actions from native screens
 - create an estimate draft from voice, photos, and short video
 - review AI-suggested work items before creating an estimate
@@ -96,12 +96,12 @@ Native surfaces should cover the most common daily actions:
 
 - Home queues
 - Calendar agenda
-- Orders list and detail
+- Jobs list and detail
 - Clients list and detail
 - Inbox list and thread detail
 - Tasks list and detail
 - notes
-- order status mutations
+- job status mutations
 - reschedule
 - call, SMS, and navigation shortcuts where permitted
 

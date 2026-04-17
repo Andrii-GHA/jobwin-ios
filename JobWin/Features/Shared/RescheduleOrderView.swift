@@ -41,7 +41,7 @@ struct RescheduleOrderView: View {
                 }
 
                 Section {
-                    Text("The order will be updated and the customer notification flow will use the new schedule.")
+            Text("The job will be updated and the customer notification flow will use the new schedule.")
                         .font(.footnote)
                         .foregroundStyle(JobWinPalette.muted)
                 }

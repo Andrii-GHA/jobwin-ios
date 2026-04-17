@@ -1,6 +1,6 @@
 # JobWin iOS Testing Checklist
 
-Last updated: 2026-04-15
+Last updated: 2026-04-17
 
 ## Purpose
 
@@ -71,12 +71,12 @@ If `iPhone 16` is unavailable, list simulators in Xcode and use an installed iOS
 - shortcuts route correctly
 - pull-to-refresh works
 
-### Orders
+### Jobs
 
-- Orders list loads
+- Jobs list loads
 - search/filter behavior works where available
-- order detail opens
-- order fields render correctly
+- job detail opens
+- job fields render correctly
 - `Arrived` works or shows permission/error state
 - `Start` works or shows permission/error state
 - `Complete` works or shows permission/error state
@@ -90,7 +90,7 @@ If `iPhone 16` is unavailable, list simulators in Xcode and use an installed iOS
 - client detail opens
 - internal note can be added or shows readable error
 - call/text/navigation actions are hidden when not allowed
-- thread/order shortcuts route correctly when IDs exist
+- thread/job shortcuts route correctly when IDs exist
 
 ### Inbox
 
@@ -105,7 +105,7 @@ If `iPhone 16` is unavailable, list simulators in Xcode and use an installed iOS
 - Tasks list loads
 - task detail opens
 - complete task works or shows readable error
-- task links from Home, Calendar, Client, and Order route correctly
+- task links from Home, Calendar, Client, and Job route correctly
 
 ### Activity Center
 
@@ -123,7 +123,7 @@ Run from Terminal after simulator boot:
 ```bash
 xcrun simctl openurl booted jobwin://home
 xcrun simctl openurl booted jobwin://calendar
-xcrun simctl openurl booted jobwin://orders
+xcrun simctl openurl booted jobwin://jobs
 xcrun simctl openurl booted jobwin://clients
 xcrun simctl openurl booted jobwin://inbox
 xcrun simctl openurl booted jobwin://tasks
@@ -166,7 +166,7 @@ This flow is not complete yet. Use this section as acceptance criteria when impl
 ### Draft Foundation
 
 - user can create a draft without client
-- user can create a draft without order
+- user can create a draft without job
 - notes save locally immediately
 - draft is still present after app restart
 - local save state is visible

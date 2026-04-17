@@ -163,7 +163,7 @@ struct ClientsView: View {
                                     NavigationLink {
                                         OrderDetailView(sessionStore: sessionStore, orderId: latestOrderId)
                                     } label: {
-                                        Text("Latest order")
+                                        Text("Latest job")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(.bordered)

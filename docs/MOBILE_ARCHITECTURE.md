@@ -1,6 +1,6 @@
 # JobWin iOS Architecture
 
-Last updated: 2026-04-15
+Last updated: 2026-04-17
 
 ## Architectural Goal
 
@@ -83,10 +83,10 @@ The app depends on these endpoint groups:
 - `POST /api/mobile/v1/activity`
 - `GET /api/mobile/v1/home`
 - `GET /api/mobile/v1/calendar`
-- `GET /api/mobile/v1/orders`
-- `GET /api/mobile/v1/orders/:orderId`
-- order field mutations
-- order reschedule
+- `GET /api/mobile/v1/jobs`
+- `GET /api/mobile/v1/jobs/:jobId`
+- job field mutations
+- job reschedule
 - `GET /api/mobile/v1/clients`
 - `GET /api/mobile/v1/clients/:clientId`
 - client note mutation
@@ -154,7 +154,7 @@ Current route families:
 - home
 - calendar
 - tasks and task detail
-- orders and order detail
+- jobs and job detail
 - inbox and thread detail
 - clients and client detail
 - estimate and invoice web fallback
@@ -164,8 +164,8 @@ Deep links should be deterministic and safe:
 ```text
 jobwin://home
 jobwin://calendar
-jobwin://orders
-jobwin://order/<id>
+jobwin://jobs
+jobwin://job/<id>
 jobwin://clients
 jobwin://client/<id>
 jobwin://inbox

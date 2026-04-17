@@ -68,10 +68,10 @@ struct OrdersView: View {
             if let model {
                 content(model: model)
             } else {
-                LoadingStateView(title: "Preparing orders...")
+                LoadingStateView(title: "Preparing jobs...")
             }
         }
-        .navigationTitle("Orders")
+        .navigationTitle("Jobs")
         .task {
             guard let client = sessionStore.makeAPIClient() else { return }
             if model == nil {
@@ -79,7 +79,7 @@ struct OrdersView: View {
             }
             await model?.load()
         }
-        .searchable(text: $searchText, prompt: "Search orders")
+        .searchable(text: $searchText, prompt: "Search jobs")
     }
 
     @ViewBuilder
@@ -87,7 +87,7 @@ struct OrdersView: View {
         let canRingOut = sessionStore.identity?.fullAccess == true
 
         if model.isLoading, model.payload == nil {
-            LoadingStateView(title: "Loading orders...")
+            LoadingStateView(title: "Loading jobs...")
         } else if let errorMessage = model.errorMessage, model.payload == nil {
             ErrorStateView(message: errorMessage) {
                 Task { await model.load() }
@@ -97,7 +97,7 @@ struct OrdersView: View {
 
             if items.isEmpty {
                 ContentUnavailableView(
-                    "No matching orders",
+                    "No matching jobs",
                     systemImage: "magnifyingglass",
                     description: Text("Try a different search query.")
                 )
