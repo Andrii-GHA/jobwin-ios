@@ -2,8 +2,9 @@ import AVFoundation
 import Foundation
 import Observation
 
-struct RecordedJobVoiceNote: Hashable {
+struct RecordedJobNoteMedia: Hashable {
     let fileURL: URL
+    let mediaKind: JobNoteMediaKind
     let mimeType: String
     let sizeBytes: Int
     let durationSeconds: Int
@@ -61,7 +62,7 @@ final class JobVoiceNoteRecorder: NSObject {
         }
     }
 
-    func stopRecording() async -> RecordedJobVoiceNote? {
+    func stopRecording() async -> RecordedJobNoteMedia? {
         guard isRecording else { return nil }
 
         stopTimer()
@@ -86,8 +87,9 @@ final class JobVoiceNoteRecorder: NSObject {
             // Keep the recorded note even if deactivation fails.
         }
 
-        return RecordedJobVoiceNote(
+        return RecordedJobNoteMedia(
             fileURL: recordingURL,
+            mediaKind: .audio,
             mimeType: "audio/mp4",
             sizeBytes: sizeBytes,
             durationSeconds: max(durationSeconds, 1)
