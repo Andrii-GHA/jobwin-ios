@@ -27,6 +27,8 @@ targets:
               - jobwin
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Share your live location during field work so dispatch can see technician position on the map.
         INFOPLIST_KEY_NSMicrophoneUsageDescription: Record job voice notes so field teams can capture work updates, materials, and follow-up tasks without losing details.
+        INFOPLIST_KEY_NSCameraUsageDescription: Record short job videos so field teams can capture on-site progress, completed work, and materials to buy.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Attach existing job videos from the photo library when documenting work completed in the field.
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDarkContent

@@ -418,8 +418,14 @@ enum JobNoteProcessingStatus: String, Codable, CaseIterable {
     case failed
 }
 
-struct JobNoteAudioDTO: Codable, Hashable {
+enum JobNoteMediaKind: String, Codable, CaseIterable {
+    case audio
+    case video
+}
+
+struct JobNoteMediaDTO: Codable, Hashable {
     let fileAssetId: String?
+    let kind: JobNoteMediaKind?
     let mimeType: String?
     let sizeBytes: Int?
     let bucket: String?
@@ -439,11 +445,21 @@ struct JobNoteDTO: Codable, Identifiable, Hashable {
     let transcriptStatus: JobNoteProcessingStatus
     let summaryStatus: JobNoteProcessingStatus
     let durationSeconds: Int?
-    let audio: JobNoteAudioDTO?
+    let mediaKind: JobNoteMediaKind?
+    let media: JobNoteMediaDTO?
+    let audio: JobNoteMediaDTO?
     let convertedEstimateDraftId: String?
     let convertedTaskId: String?
     let createdAt: String
     let updatedAt: String
+
+    var primaryMedia: JobNoteMediaDTO? {
+        media ?? audio
+    }
+
+    var effectiveMediaKind: JobNoteMediaKind? {
+        mediaKind ?? primaryMedia?.kind
+    }
 }
 
 struct JobNoteMutationResponseDTO: Codable {

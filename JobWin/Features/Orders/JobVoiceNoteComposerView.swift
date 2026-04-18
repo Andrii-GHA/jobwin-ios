@@ -1,31 +1,36 @@
+import AVFoundation
 import SwiftUI
+import UIKit
 
-struct JobVoiceNoteDraftInput: Hashable {
+struct JobNoteDraftInput: Hashable {
     let title: String?
     let body: String
-    let recording: RecordedJobVoiceNote
+    let media: RecordedJobNoteMedia
 }
 
 struct JobVoiceNoteComposerView: View {
     let isSaving: Bool
     let errorMessage: String?
-    let onSave: (JobVoiceNoteDraftInput) -> Void
+    let onSave: (JobNoteDraftInput) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
     @State private var body = ""
     @State private var recorder = JobVoiceNoteRecorder()
-    @State private var recordedNote: RecordedJobVoiceNote?
+    @State private var selectedMedia: RecordedJobNoteMedia?
+    @State private var pickerSource: JobVideoPickerSource?
+    @State private var isShowingVideoSourceOptions = false
+    @State private var localErrorMessage: String?
 
     var bodyView: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Voice note")
+                Text("Field note")
                     .font(.headline)
                     .foregroundStyle(JobWinPalette.ink)
 
-                Text("Record what was done, what should be bought, or anything that later needs to become a task or estimate.")
+                Text("Capture audio or video about completed work, materials to buy, and anything that may later become a task or estimate.")
                     .font(.subheadline)
                     .foregroundStyle(JobWinPalette.muted)
 
@@ -55,10 +60,14 @@ struct JobVoiceNoteComposerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                recorderSection
+                mediaSection
 
                 if let errorMessage {
                     Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                } else if let localErrorMessage {
+                    Text(localErrorMessage)
                         .font(.footnote)
                         .foregroundStyle(.red)
                 } else if let recorderError = recorder.errorMessage {
@@ -70,7 +79,7 @@ struct JobVoiceNoteComposerView: View {
                 Spacer()
             }
             .padding(16)
-            .navigationTitle("New voice note")
+            .navigationTitle("New note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -81,17 +90,41 @@ struct JobVoiceNoteComposerView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(isSaving ? "Saving..." : "Save") {
-                        guard let recordedNote else { return }
+                        guard let selectedMedia else { return }
                         onSave(
-                            JobVoiceNoteDraftInput(
+                            JobNoteDraftInput(
                                 title: normalizedText(title),
                                 body: body.trimmingCharacters(in: .whitespacesAndNewlines),
-                                recording: recordedNote
+                                media: selectedMedia
                             )
                         )
                     }
-                    .disabled(isSaving || recordedNote == nil || recorder.isRecording)
+                    .disabled(isSaving || selectedMedia == nil || recorder.isRecording)
                 }
+            }
+        }
+        .confirmationDialog(
+            "Add video",
+            isPresented: $isShowingVideoSourceOptions,
+            titleVisibility: .visible
+        ) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Record video") {
+                    pickerSource = .camera
+                }
+            }
+
+            if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
+                Button("Choose video") {
+                    pickerSource = .photoLibrary
+                }
+            }
+        } message: {
+            Text("Attach a short video note from the camera or library.")
+        }
+        .sheet(item: $pickerSource) { source in
+            JobVideoPicker(source: source) { result in
+                handlePickedVideo(result)
             }
         }
     }
@@ -101,34 +134,38 @@ struct JobVoiceNoteComposerView: View {
     }
 
     @ViewBuilder
-    private var recorderSection: some View {
+    private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recording")
+            Text("Audio or video")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(JobWinPalette.ink)
 
             if recorder.isRecording {
                 DetailLine(
-                    title: "Recording in progress",
+                    title: "Recording audio",
                     subtitle: "Elapsed: \(formattedDuration(recorder.elapsedSeconds))"
                 )
-            } else if let recordedNote {
+            } else if let selectedMedia {
                 DetailLine(
-                    title: "Recording ready",
-                    subtitle: "\(formattedDuration(recordedNote.durationSeconds)) - \(ByteCountFormatter.string(fromByteCount: Int64(recordedNote.sizeBytes), countStyle: .file))"
+                    title: selectedMedia.mediaKind == .video ? "Video ready" : "Audio ready",
+                    subtitle: mediaSummary(for: selectedMedia)
                 )
             } else {
-                DetailLine(title: "No recording yet", subtitle: "Tap record to capture the note.")
+                DetailLine(
+                    title: "No media yet",
+                    subtitle: "Record audio or attach a video before saving the note."
+                )
             }
 
             HStack(spacing: 12) {
-                Button(recorder.isRecording ? "Stop recording" : "Start recording") {
+                Button(recorder.isRecording ? "Stop audio" : "Record audio") {
                     Task {
+                        localErrorMessage = nil
                         if recorder.isRecording {
-                            recordedNote = await recorder.stopRecording()
+                            selectedMedia = await recorder.stopRecording()
                         } else {
-                            deleteRecordedFileIfNeeded()
-                            recordedNote = nil
+                            deleteSelectedMediaIfNeeded()
+                            selectedMedia = nil
                             _ = await recorder.startRecording()
                         }
                     }
@@ -137,10 +174,18 @@ struct JobVoiceNoteComposerView: View {
                 .tint(recorder.isRecording ? .red : JobWinPalette.primary)
                 .disabled(isSaving)
 
-                if recorder.isRecording || recordedNote != nil {
+                Button("Add video") {
+                    localErrorMessage = nil
+                    isShowingVideoSourceOptions = true
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSaving || recorder.isRecording || !hasAvailableVideoSource)
+
+                if recorder.isRecording || selectedMedia != nil {
                     Button("Discard") {
-                        deleteRecordedFileIfNeeded()
-                        recordedNote = nil
+                        deleteSelectedMediaIfNeeded()
+                        selectedMedia = nil
+                        localErrorMessage = nil
                         recorder.discardRecording()
                     }
                     .buttonStyle(.bordered)
@@ -151,18 +196,23 @@ struct JobVoiceNoteComposerView: View {
         .jobWinCard()
     }
 
+    private var hasAvailableVideoSource: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera) ||
+        UIImagePickerController.isSourceTypeAvailable(.photoLibrary)
+    }
+
     private func cleanupAndDismiss() {
-        if recorder.isRecording || recordedNote != nil {
-            deleteRecordedFileIfNeeded()
-            recordedNote = nil
+        if recorder.isRecording || selectedMedia != nil {
+            deleteSelectedMediaIfNeeded()
+            selectedMedia = nil
             recorder.discardRecording()
         }
         dismiss()
     }
 
-    private func deleteRecordedFileIfNeeded() {
-        guard let recordedNote else { return }
-        try? FileManager.default.removeItem(at: recordedNote.fileURL)
+    private func deleteSelectedMediaIfNeeded() {
+        guard let selectedMedia else { return }
+        try? FileManager.default.removeItem(at: selectedMedia.fileURL)
     }
 
     private func normalizedText(_ value: String) -> String? {
@@ -175,5 +225,80 @@ struct JobVoiceNoteComposerView: View {
         let remainder = seconds % 60
         return String(format: "%d:%02d", minutes, remainder)
     }
-}
 
+    private func mediaSummary(for media: RecordedJobNoteMedia) -> String {
+        let label = media.mediaKind == .video ? "Video" : "Audio"
+        return "\(label) - \(formattedDuration(media.durationSeconds)) - \(ByteCountFormatter.string(fromByteCount: Int64(media.sizeBytes), countStyle: .file))"
+    }
+
+    private func handlePickedVideo(_ result: Result<URL, Error>) {
+        switch result {
+        case let .success(sourceURL):
+            do {
+                localErrorMessage = nil
+                deleteSelectedMediaIfNeeded()
+                recorder.discardRecording()
+                selectedMedia = try prepareVideoMedia(from: sourceURL)
+            } catch {
+                localErrorMessage = error.localizedDescription
+            }
+        case let .failure(error):
+            localErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func prepareVideoMedia(from sourceURL: URL) throws -> RecordedJobNoteMedia {
+        let destinationURL = try makePersistedMediaURL(extension: preferredVideoExtension(from: sourceURL))
+        let fileManager = FileManager.default
+
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+        }
+
+        try fileManager.copyItem(at: sourceURL, to: destinationURL)
+
+        let attributes = try fileManager.attributesOfItem(atPath: destinationURL.path)
+        let sizeBytes = (attributes[.size] as? NSNumber)?.intValue ?? 0
+        let asset = AVURLAsset(url: destinationURL)
+        let seconds = asset.duration.seconds.isFinite ? Int(round(asset.duration.seconds)) : 0
+
+        return RecordedJobNoteMedia(
+            fileURL: destinationURL,
+            mediaKind: .video,
+            mimeType: mimeType(for: destinationURL),
+            sizeBytes: sizeBytes,
+            durationSeconds: max(seconds, 1)
+        )
+    }
+
+    private func preferredVideoExtension(from url: URL) -> String {
+        let ext = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return ext.isEmpty ? "mp4" : ext
+    }
+
+    private func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "mov":
+            return "video/quicktime"
+        case "webm":
+            return "video/webm"
+        default:
+            return "video/mp4"
+        }
+    }
+
+    private func makePersistedMediaURL(extension fileExtension: String) throws -> URL {
+        let fileManager = FileManager.default
+        let baseURL = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let directoryURL = baseURL.appendingPathComponent("JobVoiceNotes/Media", isDirectory: true)
+        if !fileManager.fileExists(atPath: directoryURL.path) {
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        }
+        return directoryURL.appendingPathComponent("\(UUID().uuidString).\(fileExtension)", isDirectory: false)
+    }
+}

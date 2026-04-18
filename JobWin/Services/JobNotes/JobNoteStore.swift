@@ -20,6 +20,7 @@ struct JobVoiceNoteLocalRecord: Codable, Identifiable, Hashable {
     var transcript: String?
     var summary: String?
     var localFilePath: String
+    var mediaKind: JobNoteMediaKind?
     var mimeType: String?
     var sizeBytes: Int?
     var durationSeconds: Int?
@@ -29,6 +30,19 @@ struct JobVoiceNoteLocalRecord: Codable, Identifiable, Hashable {
     var convertedTaskId: String?
     var createdAt: Date
     var updatedAt: Date
+
+    var effectiveMediaKind: JobNoteMediaKind {
+        if let mediaKind {
+            return mediaKind
+        }
+
+        if let mimeType = mimeType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+           mimeType.hasPrefix("video/") {
+            return .video
+        }
+
+        return .audio
+    }
 }
 
 @MainActor
@@ -107,6 +121,7 @@ final class JobNoteStore {
         title: String? = nil,
         body: String = "",
         localFilePath: String,
+        mediaKind: JobNoteMediaKind? = nil,
         mimeType: String? = nil,
         sizeBytes: Int? = nil,
         durationSeconds: Int? = nil
@@ -124,6 +139,7 @@ final class JobNoteStore {
             transcript: nil,
             summary: nil,
             localFilePath: localFilePath,
+            mediaKind: mediaKind,
             mimeType: mimeType,
             sizeBytes: sizeBytes,
             durationSeconds: durationSeconds,
@@ -149,6 +165,7 @@ final class JobNoteStore {
         title: String? = nil,
         body: String = "",
         localFilePath: String,
+        mediaKind: JobNoteMediaKind? = nil,
         mimeType: String? = nil,
         sizeBytes: Int? = nil,
         durationSeconds: Int? = nil
@@ -165,6 +182,7 @@ final class JobNoteStore {
             transcript: nil,
             summary: nil,
             localFilePath: localFilePath,
+            mediaKind: mediaKind,
             mimeType: mimeType,
             sizeBytes: sizeBytes,
             durationSeconds: durationSeconds,
@@ -197,6 +215,9 @@ final class JobNoteStore {
         notes[index].body = remoteNote.body ?? notes[index].body
         notes[index].transcript = remoteNote.transcript
         notes[index].summary = remoteNote.summary
+        notes[index].mediaKind = remoteNote.effectiveMediaKind ?? notes[index].mediaKind
+        notes[index].mimeType = remoteNote.primaryMedia?.mimeType ?? notes[index].mimeType
+        notes[index].sizeBytes = remoteNote.primaryMedia?.sizeBytes ?? notes[index].sizeBytes
         notes[index].uploadStatus = .uploaded
         notes[index].lastErrorMessage = nil
         notes[index].convertedEstimateDraftId = remoteNote.convertedEstimateDraftId

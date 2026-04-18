@@ -159,7 +159,7 @@ final class OrderDetailModel {
         }
     }
 
-    func saveVoiceNote(_ draft: JobVoiceNoteDraftInput) async -> Bool {
+    func saveJobNote(_ draft: JobNoteDraftInput) async -> Bool {
         guard !isSavingVoiceNote else { return false }
 
         let localNote = await MainActor.run {
@@ -170,14 +170,15 @@ final class OrderDetailModel {
                 clientId: payload?.client?.id,
                 title: draft.title,
                 body: draft.body,
-                localFilePath: draft.recording.fileURL.path,
-                mimeType: draft.recording.mimeType,
-                sizeBytes: draft.recording.sizeBytes,
-                durationSeconds: draft.recording.durationSeconds
+                localFilePath: draft.media.fileURL.path,
+                mediaKind: draft.media.mediaKind,
+                mimeType: draft.media.mimeType,
+                sizeBytes: draft.media.sizeBytes,
+                durationSeconds: draft.media.durationSeconds
             )
         }
 
-        noteSuccessMessage = "Voice note stored locally. Syncing..."
+        noteSuccessMessage = "Note stored locally. Syncing..."
         return await uploadLocalJobNote(localNote.id)
     }
 
@@ -205,7 +206,7 @@ final class OrderDetailModel {
                     jobNoteStore.updateConversion(remoteId: noteId, estimateDraftId: estimateDraftId)
                 }
             }
-            noteSuccessMessage = "Estimate draft created from voice note."
+            noteSuccessMessage = "Estimate draft created from note."
             await load(syncPendingNotes: false)
         } catch {
             noteErrorMessage = error.localizedDescription
@@ -232,7 +233,7 @@ final class OrderDetailModel {
                     jobNoteStore.updateConversion(remoteId: noteId, taskId: taskId)
                 }
             }
-            noteSuccessMessage = "Task created from voice note."
+            noteSuccessMessage = "Task created from note."
             await load(syncPendingNotes: false)
             await shellMetricsStore.refresh(using: client)
         } catch {
@@ -274,9 +275,9 @@ final class OrderDetailModel {
         let fileURL = URL(fileURLWithPath: localNote.localFilePath)
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             await MainActor.run {
-                jobNoteStore.markUploadFailed(localId: localId, errorMessage: "Recorded audio file is missing.")
+                jobNoteStore.markUploadFailed(localId: localId, errorMessage: "Recorded media file is missing.")
             }
-            noteErrorMessage = "Recorded audio file is missing."
+            noteErrorMessage = "Recorded media file is missing."
             return false
         }
 
@@ -296,9 +297,9 @@ final class OrderDetailModel {
                     "durationSeconds": localNote.durationSeconds.map(String.init) ?? "",
                 ],
                 file: MultipartFormFile(
-                    fieldName: "audio",
+                    fieldName: "media",
                     fileName: fileURL.lastPathComponent,
-                    mimeType: localNote.mimeType ?? "audio/mp4",
+                    mimeType: localNote.mimeType ?? defaultMimeType(for: localNote),
                     data: data
                 )
             )
@@ -306,7 +307,7 @@ final class OrderDetailModel {
             await MainActor.run {
                 jobNoteStore.bindRemoteNote(localId: localId, remoteNote: response.note)
             }
-            noteSuccessMessage = "Voice note saved."
+            noteSuccessMessage = "Note saved."
             isSavingVoiceNote = false
             return true
         } catch {
@@ -316,6 +317,15 @@ final class OrderDetailModel {
             noteErrorMessage = error.localizedDescription
             isSavingVoiceNote = false
             return false
+        }
+    }
+
+    private func defaultMimeType(for note: JobVoiceNoteLocalRecord) -> String {
+        switch note.effectiveMediaKind {
+        case .audio:
+            return "audio/mp4"
+        case .video:
+            return "video/mp4"
         }
     }
 }
@@ -372,7 +382,7 @@ struct OrderDetailView: View {
                     errorMessage: model.noteErrorMessage,
                     onSave: { draft in
                         Task {
-                            let saved = await model.saveVoiceNote(draft)
+                            let saved = await model.saveJobNote(draft)
                             if saved {
                                 isShowingVoiceNoteComposer = false
                                 await model.load(syncPendingNotes: false)
@@ -554,8 +564,8 @@ struct OrderDetailView: View {
                         }
                     }
 
-                    DetailSection(title: "Voice notes") {
-                        Button("Record voice note") {
+                    DetailSection(title: "Field notes") {
+                        Button("Add audio/video note") {
                             isShowingVoiceNoteComposer = true
                         }
                         .buttonStyle(.borderedProminent)
@@ -564,8 +574,8 @@ struct OrderDetailView: View {
 
                         if localPendingNotes.isEmpty && payload.jobNotes.isEmpty {
                             DetailLine(
-                                title: "No voice notes yet",
-                                subtitle: "Record work done, materials to buy, or anything that should become a task or estimate."
+                                title: "No field notes yet",
+                                subtitle: "Capture audio or video about completed work, materials to buy, or anything that should become a task or estimate."
                             )
                         }
 
@@ -710,6 +720,7 @@ private struct LocalJobNoteCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 StatusBadge(text: uploadLabel, color: uploadColor)
+                StatusBadge(text: mediaLabel, color: mediaColor)
                 Spacer()
                 Text(JobWinFormatting.displayDateTime(isoDateString) ?? isoDateString)
                     .font(.caption)
@@ -774,9 +785,18 @@ private struct LocalJobNoteCard: View {
 
     private var metadataLabel: String? {
         JobWinFormatting.bulletJoin(
+            note.effectiveMediaKind == .video ? "Video note" : "Audio note",
             note.durationSeconds.map { "\($0 / 60)m \($0 % 60)s" },
             note.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) }
         )
+    }
+
+    private var mediaLabel: String {
+        note.effectiveMediaKind == .video ? "Video" : "Audio"
+    }
+
+    private var mediaColor: Color {
+        note.effectiveMediaKind == .video ? .orange : JobWinPalette.primary
     }
 }
 
@@ -791,6 +811,7 @@ private struct RemoteJobNoteCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 StatusBadge(text: "Saved", color: JobWinPalette.accent)
+                StatusBadge(text: mediaLabel, color: mediaColor)
                 if note.convertedEstimateDraftId != nil {
                     StatusBadge(text: "Estimate", color: JobWinPalette.primary)
                 }
@@ -863,9 +884,18 @@ private struct RemoteJobNoteCard: View {
 
     private var metadataLabel: String? {
         JobWinFormatting.bulletJoin(
+            note.effectiveMediaKind == .video ? "Video note" : "Audio note",
             note.durationSeconds.map { "\($0 / 60)m \($0 % 60)s" },
-            note.audio?.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) },
+            note.primaryMedia?.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) },
             note.transcriptStatus == .completed ? "Transcript ready" : nil
         )
+    }
+
+    private var mediaLabel: String {
+        note.effectiveMediaKind == .video ? "Video" : "Audio"
+    }
+
+    private var mediaColor: Color {
+        note.effectiveMediaKind == .video ? .orange : JobWinPalette.primary
     }
 }
